@@ -1,0 +1,14 @@
+{
+  "name": "circuit-json-to-spice",
+  "main": "dist/index.js",
+  "type": "module",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
+    "circuit-json": "^0.0.111",
+    "tsup": "^8.3.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
