@@ -1,5 +1,13 @@
-import type { VoltageControlledSwitchCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface VoltageControlledSwitchCommandProps {
+  name: string
+  positiveNode: string
+  negativeNode: string
+  positiveControl: string
+  negativeControl: string
+  model: string
+}
 
 export class VoltageControlledSwitchCommand implements BaseSpiceCommand {
   commandName = "voltage_controlled_switch" as const

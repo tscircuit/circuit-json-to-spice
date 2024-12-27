@@ -1,5 +1,12 @@
-import type { DiodeCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface DiodeCommandProps {
+  name: string
+  positiveNode: string
+  negativeNode: string
+  model: string
+  area?: string
+}
 
 export class DiodeCommand implements BaseSpiceCommand {
   commandName = "diode" as const

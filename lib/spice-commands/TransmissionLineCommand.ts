@@ -1,5 +1,16 @@
-import type { TransmissionLineCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface TransmissionLineCommandProps {
+  name: string
+  aPositive: string
+  aNegative: string
+  bPositive: string
+  bNegative: string
+  impedance: string
+  delay?: string
+  frequency?: string
+  normalizedLength?: string
+}
 
 export class TransmissionLineCommand implements BaseSpiceCommand {
   commandName = "transmission_line" as const

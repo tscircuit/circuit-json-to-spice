@@ -1,5 +1,13 @@
-import type { InductorCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface InductorCommandProps {
+  name: string
+  positiveNode: string
+  negativeNode: string
+  model?: string
+  value: string
+  initialCondition?: string
+}
 
 export class InductorCommand implements BaseSpiceCommand {
   commandName = "inductor" as const

@@ -1,5 +1,10 @@
-import type { SubcircuitCallCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface SubcircuitCallCommandProps {
+  name: string
+  nodes: string[]
+  subcircuitName: string
+}
 
 export class SubcircuitCallCommand implements BaseSpiceCommand {
   commandName = "subcircuit_call" as const

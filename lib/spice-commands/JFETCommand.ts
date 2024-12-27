@@ -1,5 +1,13 @@
-import type { JFETCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface JFETCommandProps {
+  name: string
+  drain: string
+  gate: string
+  source: string
+  model: string
+  area?: string
+}
 
 export class JFETCommand implements BaseSpiceCommand {
   commandName = "jfet" as const

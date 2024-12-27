@@ -1,5 +1,21 @@
-import type { MOSFETCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface MOSFETCommandProps {
+  name: string
+  drain: string
+  gate: string
+  source: string
+  substrate: string
+  model: string
+  length?: string
+  width?: string
+  drainArea?: string
+  sourceArea?: string
+  drainPerimeter?: string
+  sourcePerimeter?: string
+  drainResistance?: string
+  sourceResistance?: string
+}
 
 export class MOSFETCommand implements BaseSpiceCommand {
   commandName = "mosfet" as const

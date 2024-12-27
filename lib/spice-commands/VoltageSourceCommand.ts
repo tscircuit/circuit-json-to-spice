@@ -1,5 +1,13 @@
-import type { VoltageSourceCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface VoltageSourceCommandProps {
+  name: string
+  positiveNode: string
+  negativeNode: string
+  value?: string
+  acMagnitude?: string
+  acPhase?: string
+}
 
 export class VoltageSourceCommand implements BaseSpiceCommand {
   commandName = "voltage_source" as const

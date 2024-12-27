@@ -1,5 +1,14 @@
-import type { BJTCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface BJTCommandProps {
+  name: string
+  collector: string
+  base: string
+  emitter: string
+  substrate?: string
+  model: string
+  area?: string
+}
 
 export class BJTCommand implements BaseSpiceCommand {
   commandName = "bjt" as const

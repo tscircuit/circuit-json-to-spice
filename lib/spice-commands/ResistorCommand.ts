@@ -1,5 +1,12 @@
-import type { ResistorCommandProps } from "."
 import type { BaseSpiceCommand } from "./BaseSpiceCommand"
+
+export interface ResistorCommandProps {
+  name: string
+  positiveNode: string
+  negativeNode: string
+  model?: string
+  value: string
+}
 
 export class ResistorCommand implements BaseSpiceCommand {
   commandName = "resistor" as const
