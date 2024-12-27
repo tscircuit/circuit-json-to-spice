@@ -1,9 +1,4 @@
-export interface BaseSpiceCommand {
-  commandName?: string
-  statementName?: string
-
-  toSpiceString(): string
-}
+import type { BaseSpiceCommand } from "./BaseSpiceCommand"
 
 export class DiodeCommand implements BaseSpiceCommand {
   commandName = "diode" as const
@@ -397,44 +392,4 @@ export interface SubcircuitCallCommandProps {
   name: string
   nodes: string[]
   subcircuitName: string
-}
-
-export interface CapacitorCommandProps {
-  name: string
-  positiveNode: string
-  negativeNode: string
-  modelName?: string
-  value: string
-  initialCondition?: string
-}
-
-export class CapacitorCommand implements BaseSpiceCommand {
-  commandName = "capacitor" as const
-
-  props: CapacitorCommandProps
-
-  constructor(props: CapacitorCommandProps) {
-    this.props = props
-  }
-
-  toSpiceString(): string {
-    const {
-      name,
-      positiveNode,
-      negativeNode,
-      modelName,
-      value,
-      initialCondition,
-    } = this.props
-
-    let spiceString = `C${name} ${positiveNode} ${negativeNode}`
-    if (modelName) {
-      spiceString += ` ${modelName}`
-    }
-    spiceString += ` ${value}`
-    if (initialCondition) {
-      spiceString += ` IC=${initialCondition}`
-    }
-    return spiceString
-  }
 }
