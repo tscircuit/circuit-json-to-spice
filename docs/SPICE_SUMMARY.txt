@@ -1,0 +1,248 @@
+> From http://www.ecircuitcenter.com/SPICEsummary.htm
+
+BRIEF SPICE SUMMARY
+Here's a brief reference of the SPICE devices and statements. Parameters enclosed by braces { } are required, while, those in brackets [ ] are optional. Parameters followed by an asterisk { }\* should be repeated as necessary. Each SPICE vendor may have other parameters or commands unique to their version of SPICE. (For more information see Books on SPICE)
+
+DEVICES
+
+C device - Capacitor.
+C{name} {+node} {-node} [{model}] {value} [IC={initial}]
+Examples:
+CLOAD 15 0 20pF
+CFDBK 3 33 CMOD 10pF IC=1.5v
+
+D device - Diode.
+D{name} {+node} {-node} {model} [area]
+Examples:
+DCLAMP 14 0 DMOD
+
+I device - Current Source.
+I{name} {+node} {-node} [[DC] {value}] [AC {mag} [{phase}]]
+Examples:
+IBIAS 13 0 2.3mA
+IAC 2 3 AC .001
+IPULSE 1 0 PULSE(-1mA 1mA 2ns 2ns 2ns 50ns 100ns)
+I3 26 77 AC 1 SIN(.002 .002 1.5MEG)
+See Input Sources for PULSE, SIN and more.
+Top ↑
+J device - Junction FET.  
+ J{name} {d} {g} {s} {model} [{area]}  
+ Examples:
+JIN 100 1 0 JFAST
+
+K device - Inductor Coupling.  
+ K{name} L{name} { L{name} }\* {coupling}
+Examples:
+KTUNED L3OUT L4IN .8
+KXFR1 LPRIM LSEC .99
+
+L device - Inductor.  
+ L{name} {+node} {-node} [model] {value} [IC={initial}]  
+ Examples:
+LLOAD 15 0 20mH
+L2 1 2 .2e-6
+LSENSE 5 12 2uH IC=2mA
+
+M device - MOSFET.  
+ M{name} {d} {g} {s} {sub} {mdl} [L={value}] [W={value}] + [AD={value}] [AS={value}] + [PD={value}] [PS={value}] + [NRD={value}] [NRS={value}]
+
+    Examples:
+    M1  14  2  13  0 PNOM L=25u W=12u
+    M13 15  3   0  0 PSTRONG
+
+Q device - Bipolar Transistor.  
+ Q{name} {c} {b} {e} [{subs}] {model} [{area}]  
+ Examples:
+Q1 14 2 13 PNPNOM
+Q13 15 3 0 1 NPNSTRONG 1.5
+
+R device - Resistor.  
+ R{name} {+node} {-node} [{model}] {value}  
+ Examples:
+RLOAD 15 0 2k
+
+S device - Voltage-Controlled Switch.  
+ S{name} {+node} {-node} {+control} {-control} {model}
+Examples:
+S12 13 17 2 0 SMOD
+
+T device - Transmission Line.  
+ T{name} {A+} {A-} {B+} {B-} Z0={value}
+[TD={val} | F={val}[NL={val}]]
+Examples:
+T1 1 2 3 4 Z0=220 TD=115ns
+T2 1 2 3 4 Z0=50 F=5MEG NL=0.5
+
+V device - Voltage Source.  
+ V{name} {+node} {-node} [[DC] {value}] [AC {mag} [{phase}]]
+Examples:
+VBIAS 13 0 2.3mV
+VAC 2 3 AC .001
+VPULSE 1 0 PULSE(-1mV 1mV 2ns 2ns 2ns 50ns 100ns)
+V3 26 77 AC 1 SIN(.002 .002 1.5MEG)
+See Input Sources for PULSE, SIN and more.
+
+X device - Subcircuit Call.  
+ X{name} [{node}]\* {subcircuit name}
+Examples:
+X12 100 101 200 201 DIFFAMP
+Top ↑
+
+CONTROLLED SOURCES
+E device - Voltage Controlled Voltage Source VCVS.
+E{name} {+node} {-node} {+cntrl} {-cntrl} {gain}
+E{name} {+node} {-node} POLY({value}) {{+cntrl} {-cntrl}}_ {{coeff}}_
+Examples:
+EBUFF 1 2 10 11 1.0
+EAMP 13 0 POLY(1) 26 0 500
+
+F device - Current Controlled Current Source CCCS.  
+ F{name} {+node} {-node} {vsource name} {gain}  
+ Examples:
+FSENSE 1 2 VSENSE 10.0
+
+G device - Voltage Controlled Current Source VCCS.  
+ G{name} {+node} {-node} {+control} {-control} {gain}
+Examples:
+GBUFF 1 2 10 11 1.0
+H device - Current Controlled Voltage Source CCVS.  
+ H{name} {+node} {-node} {vsource name} {gain}
+H{name} {+node} {-node} POLY({value}) { {vsource name} }_ {{coeff}}_
+Examples:
+HSENSE 1 2 VSENSE 10.0
+HAMP 13 0 POLY(1) VIN 500
+Top ↑
+
+    INPUT SOURCES
+
+EXPONENTIAL
+EXP( {v1} {v2} {trise_delay} {tau_rise} {tfall_delay} {tau_fall) )
+PULSE
+PULSE( {v1} {v2} {tdelay} {trise} {tfall} {width} {period} )
+PIECE WISE LINEAR
+PWL( {time1} {v1} {time2} {v2} ... {time3} {v3} )
+SINGLE FREQUENCY FM
+SFFM( {voffset} {vpeak} {fcarrier} {mod_index} {fsignal} )
+SINE WAVE
+SIN( {voffset} {vpeak} {freq} {tdelay} {damp_factor} {phase} )
+Top ↑
+
+ANALOG BEHAVIORAL MODELING
+VALUE
+E|G{name} {+node} {-node} VALUE {expression}
+Examples:
+GMULT 1 0 VALUE = { V(3)*V(5,6)*100 }
+ERES 1 3 VALUE = { I(VSENSE)\*10K }
+
+TABLE
+E|G{name} {+node} {-node} TABLE {expression} = (invalue, outvalue)_
+Examples:
+ECOMP 3 0 TABLE {V(1,2)} = (-1MV 0V) (1MV, 10V)
+LAPLACE
+E|G{name} {+node} {-node} LAPLACE {expression} {s expression}
+Examples:
+ELOPASS 4 0 LAPLACE {V(1)} {10 / (s/6800 + 1)}
+FREQ
+E|G{name} {+node} {-node} FREQ {expression} (freq, gain, phase)_
+Examples:
+EAMP 5 0 FREQ {V(1)} (1KZ, 10DB, 0DEG) (10KHZ, 0DB, -90DEG)
+
+STATEMENTS
+
+.AC - AC Analysis.  
+ .AC [LIN][OCT][DEC] {points} {start} {end}  
+ Examples:
+.AC LIN 101 10Hz 200Hz
+.AC DEC 20 1MEG 100MEG
+
+.DC - DC Analysis.
+.DC [LIN] {varname} {start} {end} {incr}
+.DC [OCT][DEC] {varname} {start} {end} {points}
+Examples:
+.DC VIN -.25 .25 .05
+.DC LIN I2 5mA -2mA 0.1mA VCE 10V 15V 1V
+
+.FOUR - Fourier Analysis.  
+ .FOUR {freq} {output var}\*  
+ Examples:
+.FOUR 10KHz v(5) v(6,7)
+
+.IC - Initial Transient Conditions.  
+ .IC { {vnode} = {value} }\*  
+ Examples:
+.IC V(2)=3.4 V(102)=0
+
+.MODEL – Device Model.  
+ .MODEL {name} {type}
+Typename Devname Devtype
+CAP Cxxx capacitor
+IND Lxxx inductor
+RES Rxxx resistor
+D Dxxx diode
+NPN Qxxx NPN bipolar
+PNP Qxxx PNP bipolar
+NJF Jxxx N-channel JFET
+PJF Jxxx P-channel JFET
+NMOS Mxxx N-channel MOSFET
+PMOS Mxxx P-channel MOSFET
+VSWITCH Sxxx voltage controlled switch
+
+    Examples:
+    .MODEL RMAX RES (R=1.5 TC=.02 TC2=.005)
+    .MODEL QDRIV NPN (IS=1e-7 BF=30)
+
+Top ↑
+.NODESET – Initial bias point guess.  
+ .NODESET { {node}={value} }\*  
+ Examples:
+.NODESET V(2)=3.4 V(3)=-1V
+
+.NOISE - Noise Analysis.  
+ .NOISE {output variable} {name} [{print interval}]  
+ Examples:
+.NOISE V(5) VIN
+
+.PLOT – Plot Output.  
+ .PLOT [DC][AC][NOISE][TRAN] [ [{output variable}*]
+Examples:
+.PLOT DC V(3) V(2,3) V(R1) I(VIN)
+.PLOT AC VM(2) VP(2) VG(2)
+
+.PRINT – Print Output.  
+ .PRINT [DC][AC][NOISE][TRAN] [{output variable}*]  
+ Examples:
+.PRINT DC V(3) V(2,3) V(R1) IB(Q13)
+.PRINT AC VM(2) VP(2) VG(5) II(7)
+Top ↑
+.PROBE – Save simulation output PSPICE COMMAND.  
+ .PROBE [output variable]\*
+Examples:
+.PROBE
+.PROBE V(3) VM(2) I(VIN)
+
+.SENS - Sensitivity Analysis.  
+ .SENS {output variable}\*  
+ Examples:
+.SENS V(9) V(4,3) I(VCC)
+
+.SUBCKT - Subcircuit Definition.  
+ .SUBCKT {name} [{node}*]
+Examples:
+.SUBCKT OPAMP 1 2 101 102
+
+.TEMP – Temperature Analysis.  
+ .TEMP {value}\*  
+ Examples:
+.TEMP 0 27 125
+
+.TF – DC Transfer Function.  
+ .TF {output variable} {input source name}
+Examples:
+.TF V(5) VIN
+
+.TRAN - Transient Analysis.  
+.TRAN {print step value} {final time} [{no print time}
+[{step ceiling value}]] [UIC]  
+ Examples:
+.TRAN 5NS 100NS
+Top ↑
