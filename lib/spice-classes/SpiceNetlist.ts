@@ -3,7 +3,7 @@ import { convertSpiceNetlistToString } from "../spice-utils/convertSpiceNetlistT
 export class SpiceNetlist {
   title?: string
 
-  toString() {
+  toSpiceString() {
     return convertSpiceNetlistToString(this)
   }
 }
