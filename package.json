@@ -4,7 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap inline -d dist"
+    "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap inline -d dist",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
