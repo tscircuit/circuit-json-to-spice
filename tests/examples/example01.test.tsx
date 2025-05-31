@@ -133,7 +133,7 @@ test("example01", async () => {
         "max_length": NaN,
         "min_trace_thickness": undefined,
         "source_trace_id": "source_trace_0",
-        "subcircuit_connectivity_map_key": "unnamedsubcircuit6_connectivity_net0",
+        "subcircuit_connectivity_map_key": "unnamedsubcircuit42_connectivity_net0",
         "subcircuit_id": "subcircuit_source_group_0",
         "type": "source_trace",
       },
@@ -294,7 +294,7 @@ test("example01", async () => {
       },
       {
         "error_type": "pcb_missing_footprint_error",
-        "message": "No footprint found for component: <resistor#0 name=".R1" />",
+        "message": "No footprint found for component: <resistor#36 name=".R1" />",
         "pcb_missing_footprint_error_id": "pcb_missing_footprint_error_0",
         "source_component_id": "source_component_0",
         "type": "pcb_missing_footprint_error",
@@ -315,7 +315,7 @@ test("example01", async () => {
       },
       {
         "error_type": "pcb_missing_footprint_error",
-        "message": "No footprint found for component: <capacitor#3 name=".C1" />",
+        "message": "No footprint found for component: <capacitor#39 name=".C1" />",
         "pcb_missing_footprint_error_id": "pcb_missing_footprint_error_1",
         "source_component_id": "source_component_1",
         "type": "pcb_missing_footprint_error",
@@ -343,5 +343,15 @@ test("example01", async () => {
     ]
   `)
 
-  // TODO convert circuitJson to spice netlist and take use expect(spiceString).toMatchInlineSnapshot()
+  // Convert circuit JSON to SPICE
+  const { circuitJsonToSpice } = await import("lib/circuitJsonToSpice")
+  const spiceNetlist = circuitJsonToSpice(circuitJson)
+  const spiceString = spiceNetlist.toSpiceString()
+  
+  expect(spiceString).toMatchInlineSnapshot(`
+    "Circuit JSON to SPICE Netlist
+    RR1 N1 N2 1K
+    CC1 N1 N3 1U
+    .END"
+  `)
 })
