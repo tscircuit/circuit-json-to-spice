@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import type { AnyCircuitElement } from "circuit-json"
-import { Simulation } from "eecircuit-engine"
+import { spawnSync } from "child_process"
 
 test("simulate simple resistor divider", async () => {
   const circuitJson: AnyCircuitElement[] = [
@@ -63,10 +63,10 @@ test("simulate simple resistor divider", async () => {
   lines.push(".END")
   const spice = lines.join("\n")
 
-  const sim = new Simulation()
-  await sim.start()
-  sim.setNetList(spice)
-  const result = await sim.runSim()
+  const proc = spawnSync("node", ["tests/helpers/run-sim.js"], {
+    input: spice,
+  })
+  const result = JSON.parse(proc.stdout.toString())
   expect(result.numVariables).toBeGreaterThan(0)
   expect(result.variableNames).toContain("v(n1)")
 })
