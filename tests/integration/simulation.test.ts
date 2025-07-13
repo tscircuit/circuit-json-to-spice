@@ -1,19 +1,9 @@
 import { test, expect } from "bun:test"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import type { AnyCircuitElement } from "circuit-json"
-import { spawnSync } from "node:child_process"
+import { Simulation } from "eecircuit-engine"
 
-// Helper to run node script with given netlist
-function runNodeSimulation(spice: string) {
-  const script = `import { Simulation } from 'eecircuit-engine';\n(async () => {\n  const sim = new Simulation();\n  await sim.start();\n  sim.setNetList(\`${spice.replace(/`/g, "\\`")}\`);\n  const res = await sim.runSim();\n  console.log(JSON.stringify(res));\n})();`
-  const result = spawnSync("node", ["-e", script], { encoding: "utf8" })
-  if (result.status !== 0) {
-    throw new Error(result.stderr)
-  }
-  return JSON.parse(result.stdout.trim())
-}
-
-test("simulate simple resistor divider", () => {
+test("simulate simple resistor divider", async () => {
   const circuitJson: AnyCircuitElement[] = [
     {
       type: "source_component",
@@ -73,7 +63,10 @@ test("simulate simple resistor divider", () => {
   lines.push(".END")
   const spice = lines.join("\n")
 
-  const result = runNodeSimulation(spice)
+  const sim = new Simulation()
+  await sim.start()
+  sim.setNetList(spice)
+  const result = await sim.runSim()
   expect(result.numVariables).toBeGreaterThan(0)
   expect(result.variableNames).toContain("v(n1)")
 })
