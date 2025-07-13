@@ -16,7 +16,8 @@
     "@types/bun": "^1.2.15",
     "circuit-json": "^0.0.190",
     "tscircuit": "^0.0.483",
-    "tsup": "^8.4.0"
+    "tsup": "^8.4.0",
+    "eecircuit-engine": "^1.5.2"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
