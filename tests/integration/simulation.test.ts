@@ -5,9 +5,9 @@ import { Simulation } from "eecircuit-engine"
 
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (
-    source: Response | Promise<Response>,
+    source: Response | PromiseLike<Response>,
     importObject?: WebAssembly.Imports,
-  ) => {
+  ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
     const response = await source
     return WebAssembly.instantiate(await response.arrayBuffer(), importObject)
   }
