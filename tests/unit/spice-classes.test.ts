@@ -6,7 +6,7 @@ import { CapacitorCommand } from "lib/spice-commands/CapacitorCommand"
 
 test("SpiceNetlist basic functionality", () => {
   const netlist = new SpiceNetlist("Test Netlist")
-  
+
   expect(netlist.title).toBe("Test Netlist")
   expect(netlist.components).toHaveLength(0)
   expect(netlist.nodes.size).toBe(0)
@@ -14,17 +14,17 @@ test("SpiceNetlist basic functionality", () => {
 
 test("SpiceNetlist with components", () => {
   const netlist = new SpiceNetlist("Test Circuit")
-  
+
   const resistorCmd = new ResistorCommand({
     name: "R1",
     positiveNode: "N1",
     negativeNode: "N2",
-    value: "1K"
+    value: "1K",
   })
-  
+
   const resistorComponent = new SpiceComponent("R1", resistorCmd, ["N1", "N2"])
   netlist.addComponent(resistorComponent)
-  
+
   expect(netlist.components).toHaveLength(1)
   expect(netlist.nodes.has("N1")).toBe(true)
   expect(netlist.nodes.has("N2")).toBe(true)
@@ -34,11 +34,11 @@ test("SpiceNetlist with components", () => {
 test("ResistorCommand SPICE string generation", () => {
   const resistor = new ResistorCommand({
     name: "R1",
-    positiveNode: "N1", 
+    positiveNode: "N1",
     negativeNode: "N2",
-    value: "1K"
+    value: "1K",
   })
-  
+
   expect(resistor.toSpiceString()).toBe("RR1 N1 N2 1K")
 })
 
@@ -46,35 +46,35 @@ test("CapacitorCommand SPICE string generation", () => {
   const capacitor = new CapacitorCommand({
     name: "C1",
     positiveNode: "N1",
-    negativeNode: "N2", 
-    value: "100nF"
+    negativeNode: "N2",
+    value: "100nF",
   })
-  
+
   expect(capacitor.toSpiceString()).toBe("CC1 N1 N2 100nF")
 })
 
 test("SpiceNetlist toSpiceString", () => {
   const netlist = new SpiceNetlist("RC Circuit")
-  
+
   const resistorCmd = new ResistorCommand({
     name: "R1",
     positiveNode: "N1",
     negativeNode: "N2",
-    value: "1K"
+    value: "1K",
   })
-  
+
   const capacitorCmd = new CapacitorCommand({
     name: "C1",
     positiveNode: "N2",
     negativeNode: "0",
-    value: "100nF"
+    value: "100nF",
   })
-  
+
   netlist.addComponent(new SpiceComponent("R1", resistorCmd, ["N1", "N2"]))
   netlist.addComponent(new SpiceComponent("C1", capacitorCmd, ["N2", "0"]))
-  
+
   const spiceString = netlist.toSpiceString()
-  
+
   expect(spiceString).toMatchInlineSnapshot(`
     "RC Circuit
     RR1 N1 N2 1K

@@ -347,7 +347,7 @@ test("example01", async () => {
   const { circuitJsonToSpice } = await import("lib/circuitJsonToSpice")
   const spiceNetlist = circuitJsonToSpice(circuitJson)
   const spiceString = spiceNetlist.toSpiceString()
-  
+
   expect(spiceString).toMatchInlineSnapshot(`
     "Circuit JSON to SPICE Netlist
     RR1 N1 N2 1K
