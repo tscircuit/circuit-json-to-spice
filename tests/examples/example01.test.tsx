@@ -28,9 +28,16 @@ test("example01", async () => {
   expect(circuitJson).toMatchInlineSnapshot(`
     [
       {
-        "software_used_string": "@tscircuit/core@0.0.418",
+        "software_used_string": "@tscircuit/core@0.0.572",
         "source_project_metadata_id": "source_project_metadata_0",
         "type": "source_project_metadata",
+      },
+      {
+        "is_subcircuit": true,
+        "name": undefined,
+        "source_group_id": "source_group_0",
+        "subcircuit_id": "subcircuit_source_group_0",
+        "type": "source_group",
       },
       {
         "name": "pin1",
@@ -44,6 +51,7 @@ test("example01", async () => {
         ],
         "source_component_id": "source_component_0",
         "source_port_id": "source_port_0",
+        "subcircuit_connectivity_map_key": "unnamedsubcircuit6_connectivity_net0",
         "subcircuit_id": "subcircuit_source_group_0",
         "type": "source_port",
       },
@@ -70,6 +78,7 @@ test("example01", async () => {
         "name": "R1",
         "resistance": 1000,
         "source_component_id": "source_component_0",
+        "source_group_id": "source_group_0",
         "supplier_part_numbers": undefined,
         "type": "source_component",
       },
@@ -77,14 +86,13 @@ test("example01", async () => {
         "name": "pin1",
         "pin_number": 1,
         "port_hints": [
-          "anode",
           "pos",
-          "left",
           "pin1",
           "1",
         ],
         "source_component_id": "source_component_1",
         "source_port_id": "source_port_2",
+        "subcircuit_connectivity_map_key": "unnamedsubcircuit6_connectivity_net0",
         "subcircuit_id": "subcircuit_source_group_0",
         "type": "source_port",
       },
@@ -92,9 +100,7 @@ test("example01", async () => {
         "name": "pin2",
         "pin_number": 2,
         "port_hints": [
-          "cathode",
           "neg",
-          "right",
           "pin2",
           "2",
         ],
@@ -113,15 +119,9 @@ test("example01", async () => {
         "max_voltage_rating": undefined,
         "name": "C1",
         "source_component_id": "source_component_1",
+        "source_group_id": "source_group_0",
         "supplier_part_numbers": undefined,
         "type": "source_component",
-      },
-      {
-        "is_subcircuit": true,
-        "name": undefined,
-        "source_group_id": "source_group_0",
-        "subcircuit_id": "subcircuit_source_group_0",
-        "type": "source_group",
       },
       {
         "connected_source_net_ids": [],
@@ -133,7 +133,7 @@ test("example01", async () => {
         "max_length": NaN,
         "min_trace_thickness": undefined,
         "source_trace_id": "source_trace_0",
-        "subcircuit_connectivity_map_key": "unnamedsubcircuit42_connectivity_net0",
+        "subcircuit_connectivity_map_key": "unnamedsubcircuit6_connectivity_net0",
         "subcircuit_id": "subcircuit_source_group_0",
         "type": "source_trace",
       },
@@ -143,6 +143,7 @@ test("example01", async () => {
           "y": 0,
         },
         "schematic_component_id": "schematic_component_0",
+        "schematic_group_id": "schematic_group_0",
         "size": {
           "height": 0.388910699999999,
           "width": 1.0583332999999997,
@@ -158,6 +159,7 @@ test("example01", async () => {
           "y": 0,
         },
         "schematic_component_id": "schematic_component_1",
+        "schematic_group_id": "schematic_group_0",
         "size": {
           "height": 0.8400173000000031,
           "width": 1.0583333000000001,
@@ -169,12 +171,28 @@ test("example01", async () => {
       },
       {
         "center": {
-          "x": -0.5337907000000003,
-          "y": 0.045805199999999324,
+          "x": 0,
+          "y": 0,
+        },
+        "height": 0,
+        "is_subcircuit": true,
+        "name": "UNNAMED_subcircuit_source_group_0",
+        "schematic_component_ids": [],
+        "schematic_group_id": "schematic_group_0",
+        "source_group_id": "source_group_0",
+        "subcircuit_id": "subcircuit_source_group_0",
+        "type": "schematic_group",
+        "width": 0,
+      },
+      {
+        "center": {
+          "x": -0.5512907000000002,
+          "y": 0.0002732499999993365,
         },
         "display_pin_label": "pos",
         "distance_from_component_edge": 0.4,
         "facing_direction": "left",
+        "is_connected": true,
         "pin_number": 1,
         "schematic_component_id": "schematic_component_0",
         "schematic_port_id": "schematic_port_0",
@@ -185,12 +203,13 @@ test("example01", async () => {
       },
       {
         "center": {
-          "x": 0.5687907000000003,
-          "y": 0.04525870000000065,
+          "x": 0.5512907000000002,
+          "y": -0.0002732499999993365,
         },
         "display_pin_label": "neg",
         "distance_from_component_edge": 0.4,
         "facing_direction": "right",
+        "is_connected": false,
         "pin_number": 2,
         "schematic_component_id": "schematic_component_0",
         "schematic_port_id": "schematic_port_1",
@@ -202,11 +221,12 @@ test("example01", async () => {
       {
         "center": {
           "x": -0.5512093000000002,
-          "y": 0.016380250000000984,
+          "y": -0.00027334999999961695,
         },
         "display_pin_label": "pos",
         "distance_from_component_edge": 0.4,
         "facing_direction": "left",
+        "is_connected": true,
         "pin_number": 1,
         "schematic_component_id": "schematic_component_1",
         "schematic_port_id": "schematic_port_2",
@@ -218,11 +238,12 @@ test("example01", async () => {
       {
         "center": {
           "x": 0.5512093000000002,
-          "y": 0.016926950000000218,
+          "y": 0.00027334999999961695,
         },
         "display_pin_label": "neg",
         "distance_from_component_edge": 0.4,
         "facing_direction": "right",
+        "is_connected": false,
         "pin_number": 2,
         "schematic_component_id": "schematic_component_1",
         "schematic_port_id": "schematic_port_3",
@@ -235,41 +256,32 @@ test("example01", async () => {
         "edges": [
           {
             "from": {
-              "layer": "top",
-              "route_type": "wire",
-              "width": 0.1,
               "x": -0.5512093000000002,
-              "y": 0.016380250000000984,
+              "y": -0.00027334999999961695,
             },
             "to": {
-              "layer": "top",
-              "route_type": "wire",
-              "width": 0.1,
-              "x": -0.5512093000000002,
-              "y": 0.016380250000000984,
+              "x": -0.5512500000000002,
+              "y": -0.00027334999999961695,
             },
           },
           {
             "from": {
-              "layer": "top",
-              "route_type": "wire",
-              "width": 0.1,
-              "x": -0.5512093000000002,
-              "y": 0.016380250000000984,
+              "x": -0.5512500000000002,
+              "y": -0.00027334999999961695,
             },
             "to": {
-              "x": -0.5512093000000002,
-              "y": 0.045805199999999324,
+              "x": -0.5512500000000002,
+              "y": 0.0002732499999993365,
             },
           },
           {
             "from": {
-              "x": -0.5512093000000002,
-              "y": 0.045805199999999324,
+              "x": -0.5512500000000002,
+              "y": 0.0002732499999993365,
             },
             "to": {
-              "x": -0.5337907000000003,
-              "y": 0.045805199999999324,
+              "x": -0.5512907000000002,
+              "y": 0.0002732499999993365,
             },
           },
         ],
@@ -294,7 +306,7 @@ test("example01", async () => {
       },
       {
         "error_type": "pcb_missing_footprint_error",
-        "message": "No footprint found for component: <resistor#36 name=".R1" />",
+        "message": "No footprint found for component: <resistor#0 name=".R1" />",
         "pcb_missing_footprint_error_id": "pcb_missing_footprint_error_0",
         "source_component_id": "source_component_0",
         "type": "pcb_missing_footprint_error",
@@ -315,7 +327,7 @@ test("example01", async () => {
       },
       {
         "error_type": "pcb_missing_footprint_error",
-        "message": "No footprint found for component: <capacitor#39 name=".C1" />",
+        "message": "No footprint found for component: <capacitor#3 name=".C1" />",
         "pcb_missing_footprint_error_id": "pcb_missing_footprint_error_1",
         "source_component_id": "source_component_1",
         "type": "pcb_missing_footprint_error",
@@ -335,7 +347,8 @@ test("example01", async () => {
         "width": 0,
       },
       {
-        "message": "Unexpected numItems value: 0.",
+        "error_type": "pcb_autorouting_error",
+        "message": "Unexpected numItems value: 0. (capacity-autorouter@0.0.93)",
         "pcb_autorouting_error_id": "pcb_autorouting_error_0",
         "pcb_error_id": "pcb_autorouter_error_subcircuit_subcircuit_source_group_0",
         "type": "pcb_autorouting_error",
