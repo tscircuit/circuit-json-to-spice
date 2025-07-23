@@ -28,7 +28,7 @@ test("example01", async () => {
   expect(circuitJson).toMatchInlineSnapshot(`
     [
       {
-        "software_used_string": "@tscircuit/core@0.0.572",
+        "software_used_string": "@tscircuit/core@0.0.576",
         "source_project_metadata_id": "source_project_metadata_0",
         "type": "source_project_metadata",
       },

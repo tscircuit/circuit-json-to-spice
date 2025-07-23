@@ -1,2 +1,2 @@
-[install.lockfile]
-save=false
+# This file is intentionally configured to allow lockfile generation.
+# The "[install.lockfile]" section with "save=false" has been removed.
