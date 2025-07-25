@@ -5,7 +5,7 @@ import type { AnyCircuitElement } from "circuit-json"
 test("empty circuit JSON", () => {
   const circuitJson: AnyCircuitElement[] = []
   const netlist = circuitJsonToSpice(circuitJson)
-  
+
   expect(netlist.components).toHaveLength(0)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
     "Circuit JSON to SPICE Netlist
@@ -20,26 +20,26 @@ test("single resistor circuit JSON", () => {
       source_component_id: "R1",
       name: "R1",
       ftype: "simple_resistor",
-      resistance: 1000
+      resistance: 1000,
     } as any,
     {
       type: "source_port",
       source_port_id: "R1_pin1",
       source_component_id: "R1",
       name: "pin1",
-      pin_number: 1
+      pin_number: 1,
     } as any,
     {
-      type: "source_port", 
+      type: "source_port",
       source_port_id: "R1_pin2",
       source_component_id: "R1",
       name: "pin2",
-      pin_number: 2
-    } as any
+      pin_number: 2,
+    } as any,
   ]
-  
+
   const netlist = circuitJsonToSpice(circuitJson)
-  
+
   expect(netlist.components).toHaveLength(1)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
     "Circuit JSON to SPICE Netlist
@@ -53,51 +53,51 @@ test("RC circuit with trace", () => {
     {
       type: "source_component",
       source_component_id: "R1",
-      name: "R1", 
+      name: "R1",
       ftype: "simple_resistor",
-      resistance: 1000
+      resistance: 1000,
     } as any,
     {
       type: "source_component",
       source_component_id: "C1",
       name: "C1",
-      ftype: "simple_capacitor", 
-      capacitance: 1e-6
+      ftype: "simple_capacitor",
+      capacitance: 1e-6,
     } as any,
     {
       type: "source_port",
       source_port_id: "R1_pin1",
       source_component_id: "R1",
-      name: "pin1"
+      name: "pin1",
     } as any,
     {
       type: "source_port",
-      source_port_id: "R1_pin2", 
+      source_port_id: "R1_pin2",
       source_component_id: "R1",
-      name: "pin2"
+      name: "pin2",
     } as any,
     {
       type: "source_port",
       source_port_id: "C1_pin1",
-      source_component_id: "C1", 
-      name: "pin1"
+      source_component_id: "C1",
+      name: "pin1",
     } as any,
     {
       type: "source_port",
       source_port_id: "C1_pin2",
       source_component_id: "C1",
-      name: "pin2"
+      name: "pin2",
     } as any,
     {
       type: "source_trace",
       source_trace_id: "trace1",
       connected_source_port_ids: ["R1_pin2", "C1_pin1"],
-      connected_source_net_ids: []
-    } as any
+      connected_source_net_ids: [],
+    } as any,
   ]
-  
+
   const netlist = circuitJsonToSpice(circuitJson)
-  
+
   expect(netlist.components).toHaveLength(2)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
     "Circuit JSON to SPICE Netlist

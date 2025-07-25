@@ -14,9 +14,8 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "^1.2.15",
-    "circuit-json": "^0.0.190",
     "eecircuit-engine": "^1.5.2",
-    "tscircuit": "^0.0.483",
+    "tscircuit": "^0.0.561",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {

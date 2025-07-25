@@ -5,7 +5,7 @@ export class SpiceNetlist {
   title: string
   components: SpiceComponent[]
   nodes: Set<string>
-  
+
   constructor(title = "Circuit Netlist") {
     this.title = title
     this.components = []
