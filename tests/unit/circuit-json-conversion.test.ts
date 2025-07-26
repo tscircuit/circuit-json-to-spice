@@ -106,3 +106,44 @@ test("RC circuit with trace", () => {
     .END"
   `)
 })
+
+test("circuit with simulation voltage source", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "R1",
+      name: "R1",
+      ftype: "simple_resistor",
+      resistance: 1000,
+    } as any,
+    {
+      type: "source_port",
+      source_port_id: "R1_pin1",
+      source_component_id: "R1",
+      name: "pin1",
+    } as any,
+    {
+      type: "source_port",
+      source_port_id: "R1_pin2",
+      source_component_id: "R1",
+      name: "pin2",
+    } as any,
+    {
+      type: "simulation_voltage_source",
+      simulation_voltage_source_id: "V1",
+      positive_source_port_id: "R1_pin1",
+      negative_source_port_id: "R1_pin2",
+      voltage: 5,
+    } as any,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+
+  expect(netlist.components).toHaveLength(2)
+  expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+    "Circuit JSON to SPICE Netlist
+    RR1 N1 N2 1K
+    VV1 N1 N2 5
+    .END"
+  `)
+})

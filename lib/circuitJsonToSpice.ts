@@ -2,6 +2,7 @@ import { SpiceNetlist } from "./spice-classes/SpiceNetlist"
 import { SpiceComponent } from "./spice-classes/SpiceComponent"
 import { ResistorCommand } from "./spice-commands/ResistorCommand"
 import { CapacitorCommand } from "./spice-commands/CapacitorCommand"
+import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
 
 export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
   const netlist = new SpiceNetlist("Circuit JSON to SPICE Netlist")
@@ -42,8 +43,12 @@ export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
 
     // Get node names for component ports
     const nodes = componentPorts.map((port) => {
-      const nodeName = nodeMap.get(port.source_port_id)
-      return nodeName || `N${nodeCounter++}` // Create new node if not found
+      let nodeName = nodeMap.get(port.source_port_id)
+      if (!nodeName) {
+        nodeName = `N${nodeCounter++}`
+        nodeMap.set(port.source_port_id, nodeName)
+      }
+      return nodeName
     })
 
     // Create SPICE component based on type
@@ -89,6 +94,37 @@ export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
       if (spiceComponent) {
         netlist.addComponent(spiceComponent)
       }
+    }
+  }
+
+  // Process simulation voltage sources
+  const simulationVoltageSources = circuitJson.filter(
+    (el) => el.type === "simulation_voltage_source",
+  )
+
+  for (const simSource of simulationVoltageSources) {
+    if (
+      simSource.type === "simulation_voltage_source" &&
+      "positive_source_port_id" in simSource &&
+      "negative_source_port_id" in simSource &&
+      "voltage" in simSource
+    ) {
+      const positiveNode = nodeMap.get(simSource.positive_source_port_id) || "0"
+      const negativeNode = nodeMap.get(simSource.negative_source_port_id) || "0"
+
+      const voltageSourceCmd = new VoltageSourceCommand({
+        name: simSource.simulation_voltage_source_id,
+        positiveNode,
+        negativeNode,
+        value: simSource.voltage.toString(),
+      })
+
+      const spiceComponent = new SpiceComponent(
+        simSource.simulation_voltage_source_id,
+        voltageSourceCmd,
+        [positiveNode, negativeNode],
+      )
+      netlist.addComponent(spiceComponent)
     }
   }
 
