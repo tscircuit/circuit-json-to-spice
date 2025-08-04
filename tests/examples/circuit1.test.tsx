@@ -3,7 +3,7 @@ import { sel } from "tscircuit"
 import { getTestFixture } from "tests/fixtures/getTestFixture"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 
-test("complex circuit with multiple components", async () => {
+test("circuit with multiple components", async () => {
   const { circuit } = await getTestFixture()
 
   circuit.add(
@@ -26,11 +26,11 @@ test("complex circuit with multiple components", async () => {
   const spiceString = spiceNetlist.toSpiceString()
 
   expect(spiceString).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
+    "* Circuit JSON to SPICE Netlist
     RR1 N1 N2 10K
     RR2 N2 N3 5.6K
-    CC1 N1 N4 100N
-    CC2 N3 N5 1U
+    CC1 N1 0 100N
+    CC2 N3 0 1U
     .END"
   `)
 })
@@ -53,9 +53,9 @@ test("simple resistor divider", async () => {
   const spiceString = spiceNetlist.toSpiceString()
 
   expect(spiceString).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
-    RR1 N2 N1 1K
-    RR2 N1 N3 2K
+    "* Circuit JSON to SPICE Netlist
+    RR1 0 N1 1K
+    RR2 N1 0 2K
     .END"
   `)
 })
