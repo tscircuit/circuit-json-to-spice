@@ -31,9 +31,9 @@ test("example01", async () => {
   const spiceString = spiceNetlist.toSpiceString()
 
   expect(spiceString).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
-    RR1 N1 N2 1K
-    CC1 N1 N3 1U
+    "* Circuit JSON to SPICE Netlist
+    RR1 N1 0 1K
+    CC1 N1 0 1U
     .END"
   `)
 })

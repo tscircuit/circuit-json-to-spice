@@ -8,7 +8,7 @@ test("empty circuit JSON", () => {
 
   expect(netlist.components).toHaveLength(0)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
+    "* Circuit JSON to SPICE Netlist
     .END"
   `)
 })
@@ -42,8 +42,8 @@ test("single resistor circuit JSON", () => {
 
   expect(netlist.components).toHaveLength(1)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
-    RR1 N1 N2 1K
+    "* Circuit JSON to SPICE Netlist
+    RR1 0 0 1K
     .END"
   `)
 })
@@ -100,9 +100,9 @@ test("RC circuit with trace", () => {
 
   expect(netlist.components).toHaveLength(2)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
-    RR1 N2 N1 1K
-    CC1 N1 N3 1U
+    "* Circuit JSON to SPICE Netlist
+    RR1 0 N1 1K
+    CC1 N1 0 1U
     .END"
   `)
 })
@@ -141,9 +141,9 @@ test("circuit with simulation voltage source", () => {
 
   expect(netlist.components).toHaveLength(2)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
-    "Circuit JSON to SPICE Netlist
-    RR1 N1 N2 1K
-    VV1 N1 N2 5
+    "* Circuit JSON to SPICE Netlist
+    RR1 0 0 1K
+    VV1 0 0 DC 5
     .END"
   `)
 })

@@ -3,31 +3,41 @@ import { SpiceComponent } from "./spice-classes/SpiceComponent"
 import { ResistorCommand } from "./spice-commands/ResistorCommand"
 import { CapacitorCommand } from "./spice-commands/CapacitorCommand"
 import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
+import type { AnyCircuitElement } from "circuit-json"
+import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
+import { su } from "@tscircuit/soup-util"
 
-export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
-  const netlist = new SpiceNetlist("Circuit JSON to SPICE Netlist")
+export function circuitJsonToSpice(
+  circuitJson: AnyCircuitElement[],
+): SpiceNetlist {
+  const netlist = new SpiceNetlist("* Circuit JSON to SPICE Netlist")
+  const sourceComponents = su(circuitJson).source_component.list()
+  const sourcePorts = su(circuitJson).source_port.list()
 
-  // Extract components and ports for node mapping
-  const sourceComponents = circuitJson.filter(
-    (el) => el.type === "source_component",
-  )
-  const sourcePorts = circuitJson.filter((el) => el.type === "source_port")
-  const sourceTraces = circuitJson.filter((el) => el.type === "source_trace")
+  const connMap = getSourcePortConnectivityMapFromCircuitJson(circuitJson)
 
   // Create node mapping from port connections
   const nodeMap = new Map<string, string>()
+  const netToNodeName = new Map<string, string>()
   let nodeCounter = 1
 
-  // Process traces to create node assignments
-  for (const trace of sourceTraces) {
-    if (trace.type === "source_trace") {
-      const connectedPorts = trace.connected_source_port_ids || []
-      if (connectedPorts.length > 0) {
-        const nodeName = `N${nodeCounter++}`
-        for (const portId of connectedPorts) {
-          nodeMap.set(portId, nodeName)
-        }
+  // Find ground node from ports named "GND"
+  const groundPort = sourcePorts.find((p) => p.name?.toLowerCase() === "gnd")
+  if (groundPort) {
+    const groundNet = connMap.getNetConnectedToId(groundPort.source_port_id)
+    if (groundNet) {
+      netToNodeName.set(groundNet, "0")
+    }
+  }
+
+  for (const port of sourcePorts) {
+    const portId = port.source_port_id
+    const net = connMap.getNetConnectedToId(portId)
+    if (net) {
+      if (!netToNodeName.has(net)) {
+        netToNodeName.set(net, `N${nodeCounter++}`)
       }
+      nodeMap.set(portId, netToNodeName.get(net)!)
     }
   }
 
@@ -35,20 +45,15 @@ export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
   for (const component of sourceComponents) {
     if (component.type !== "source_component") continue
 
-    const componentPorts = sourcePorts.filter(
-      (port): port is typeof port & { type: "source_port" } =>
-        port.type === "source_port" &&
-        port.source_component_id === component.source_component_id,
-    )
+    const componentPorts = su(circuitJson)
+      .source_port.list({
+        source_component_id: component.source_component_id,
+      })
+      .sort((a, b) => (a.pin_number ?? 0) - (b.pin_number ?? 0))
 
     // Get node names for component ports
     const nodes = componentPorts.map((port) => {
-      let nodeName = nodeMap.get(port.source_port_id)
-      if (!nodeName) {
-        nodeName = `N${nodeCounter++}`
-        nodeMap.set(port.source_port_id, nodeName)
-      }
-      return nodeName
+      return nodeMap.get(port.source_port_id) || "0"
     })
 
     // Create SPICE component based on type
@@ -98,9 +103,8 @@ export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
   }
 
   // Process simulation voltage sources
-  const simulationVoltageSources = circuitJson.filter(
-    (el) => el.type === "simulation_voltage_source",
-  )
+  const simulationVoltageSources =
+    su(circuitJson).simulation_voltage_source.list()
 
   for (const simSource of simulationVoltageSources) {
     if (
@@ -116,7 +120,7 @@ export function circuitJsonToSpice(circuitJson: any[]): SpiceNetlist {
         name: simSource.simulation_voltage_source_id,
         positiveNode,
         negativeNode,
-        value: simSource.voltage.toString(),
+        value: `DC ${simSource.voltage}`,
       })
 
       const spiceComponent = new SpiceComponent(
