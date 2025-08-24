@@ -30,6 +30,18 @@ export function circuitJsonToSpice(
     }
   }
 
+  for (const simSource of su(circuitJson).simulation_voltage_source.list()) {
+    const neg_port_id =
+      (simSource as any).negative_source_port_id ??
+      (simSource as any).terminal2_source_port_id
+    if (neg_port_id) {
+      const gnd_net = connMap.getNetConnectedToId(neg_port_id)
+      if (gnd_net) {
+        netToNodeName.set(gnd_net, "0")
+      }
+    }
+  }
+
   for (const port of sourcePorts) {
     const portId = port.source_port_id
     const net = connMap.getNetConnectedToId(portId)
@@ -107,28 +119,76 @@ export function circuitJsonToSpice(
     su(circuitJson).simulation_voltage_source.list()
 
   for (const simSource of simulationVoltageSources) {
-    if (
-      simSource.type === "simulation_voltage_source" &&
-      "positive_source_port_id" in simSource &&
-      "negative_source_port_id" in simSource &&
-      "voltage" in simSource
-    ) {
-      const positiveNode = nodeMap.get(simSource.positive_source_port_id) || "0"
-      const negativeNode = nodeMap.get(simSource.negative_source_port_id) || "0"
+    if (simSource.type !== "simulation_voltage_source") continue
 
-      const voltageSourceCmd = new VoltageSourceCommand({
-        name: simSource.simulation_voltage_source_id,
-        positiveNode,
-        negativeNode,
-        value: `DC ${simSource.voltage}`,
-      })
+    if ((simSource as any).is_dc_source === false) {
+      // AC Source
+      if (
+        "terminal1_source_port_id" in simSource &&
+        "terminal2_source_port_id" in simSource &&
+        (simSource as any).terminal1_source_port_id &&
+        (simSource as any).terminal2_source_port_id
+      ) {
+        const positiveNode =
+          nodeMap.get((simSource as any).terminal1_source_port_id) || "0"
+        const negativeNode =
+          nodeMap.get((simSource as any).terminal2_source_port_id) || "0"
 
-      const spiceComponent = new SpiceComponent(
-        simSource.simulation_voltage_source_id,
-        voltageSourceCmd,
-        [positiveNode, negativeNode],
-      )
-      netlist.addComponent(spiceComponent)
+        let value = ""
+        if ((simSource as any).wave_shape === "sinewave") {
+          const v_offset = 0 // not provided in circuitJson
+          const v_peak = (simSource as any).voltage ?? 0
+          const freq = (simSource as any).frequency ?? 0
+          const delay = 0 // not provided in circuitJson
+          const damping_factor = 0 // not provided in circuitJson
+          const phase = (simSource as any).phase ?? 0
+          value = `SIN(${v_offset} ${v_peak} ${freq} ${delay} ${damping_factor} ${phase})`
+        }
+
+        if (value) {
+          const voltageSourceCmd = new VoltageSourceCommand({
+            name: simSource.simulation_voltage_source_id,
+            positiveNode,
+            negativeNode,
+            value,
+          })
+
+          const spiceComponent = new SpiceComponent(
+            simSource.simulation_voltage_source_id,
+            voltageSourceCmd,
+            [positiveNode, negativeNode],
+          )
+          netlist.addComponent(spiceComponent)
+        }
+      }
+    } else {
+      // DC Source (is_dc_source is true or undefined)
+      if (
+        "positive_source_port_id" in simSource &&
+        "negative_source_port_id" in simSource &&
+        "voltage" in simSource &&
+        (simSource as any).positive_source_port_id &&
+        (simSource as any).negative_source_port_id
+      ) {
+        const positiveNode =
+          nodeMap.get((simSource as any).positive_source_port_id) || "0"
+        const negativeNode =
+          nodeMap.get((simSource as any).negative_source_port_id) || "0"
+
+        const voltageSourceCmd = new VoltageSourceCommand({
+          name: simSource.simulation_voltage_source_id,
+          positiveNode,
+          negativeNode,
+          value: `DC ${(simSource as any).voltage}`,
+        })
+
+        const spiceComponent = new SpiceComponent(
+          simSource.simulation_voltage_source_id,
+          voltageSourceCmd,
+          [positiveNode, negativeNode],
+        )
+        netlist.addComponent(spiceComponent)
+      }
     }
   }
 
