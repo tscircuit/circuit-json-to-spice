@@ -6,6 +6,11 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
   // Title line (required first line in SPICE)
   lines.push(netlist.title)
 
+  // Add models
+  if (netlist.models.size > 0) {
+    lines.push(...Array.from(netlist.models.values()))
+  }
+
   // Component lines
   for (const component of netlist.components) {
     lines.push(component.toSpiceString())

@@ -14,8 +14,9 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "^1.2.15",
+    "bun-match-svg": "^0.0.13",
     "eecircuit-engine": "^1.5.2",
-    "tscircuit": "^0.0.598",
+    "tscircuit": "^0.0.610",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {

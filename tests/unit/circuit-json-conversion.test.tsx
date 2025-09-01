@@ -33,7 +33,7 @@ test("single resistor circuit", async () => {
   expect(netlist.components).toHaveLength(1)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
-    RR1 0 N1 1K
+    RR1 N1 0 1K
     .END"
   `)
 })
@@ -59,8 +59,8 @@ test("RC circuit with trace", async () => {
   expect(netlist.components).toHaveLength(2)
   expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
-    RR1 N1 N2 1K
-    CC1 N2 N3 1U
+    RR1 0 N1 1K
+    CC1 N1 0 1U
     .END"
   `)
 })

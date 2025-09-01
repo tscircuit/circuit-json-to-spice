@@ -16,8 +16,6 @@ test("example01", async () => {
           pin1: sel.R1.pin1,
         }}
       />
-      {/* Not supported in tscircuit yet */}
-      {/* <powersource name="V1" voltage="1V" /> */}
     </board>,
   )
 
@@ -32,8 +30,8 @@ test("example01", async () => {
 
   expect(spiceString).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
-    RR1 N1 0 1K
-    CC1 N1 0 1U
+    RR1 N1 N2 1K
+    CC1 N1 N3 1U
     .END"
   `)
 })

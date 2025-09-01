@@ -8,6 +8,7 @@ export class SpiceNetlist {
   nodes: Set<string>
   controls: string[]
   subcircuits: SpiceSubcircuit[]
+  models: Map<string, string>
 
   constructor(title = "Circuit Netlist") {
     this.title = title
@@ -15,6 +16,7 @@ export class SpiceNetlist {
     this.nodes = new Set()
     this.controls = []
     this.subcircuits = []
+    this.models = new Map()
   }
 
   addComponent(component: SpiceComponent) {
