@@ -38,7 +38,9 @@ test("circuit with unrelated voltage_source components", async () => {
       <trace from=".U_MCU > .GND" to="net.GND" />
       <resistor name="R2_Test" resistance="10k" footprint="0402" />
       <chip name="U2_Test" footprint="soic8" />
-      <trace from=".R2_Test > .pin1" to=".U2_Test > .pin1" />
+      <trace from=".R2_Test > .pin1" to=".U_MCU > .GND" />
+      <trace from=".R2_Test > .pin2" to=".R1_Test > .pin1" />
+      <trace from=".U_REG > .VOUT" to=".R1_Test > .pin2" />
     </board>,
   )
 
@@ -51,9 +53,9 @@ test("circuit with unrelated voltage_source components", async () => {
 
   expect(spiceString).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
-    RR1_Test N1 0 10K
-    RR2_Test N4 0 10K
-    Vsimulation_voltage_source_0 N3 0 DC 3.3
+    RR1_Test N1 N2 10K
+    RR2_Test 0 N1 10K
+    Vsimulation_voltage_source_0 N2 0 DC 3.3
     .END"
   `)
 })

@@ -29,8 +29,8 @@ test("circuit with multiple components", async () => {
     "* Circuit JSON to SPICE Netlist
     RR1 N1 N2 10K
     RR2 N2 N3 5.6K
-    CC1 N1 0 100N
-    CC2 N3 0 1U
+    CC1 N1 N4 100N
+    CC2 N3 N5 1U
     .END"
   `)
 })
@@ -54,8 +54,8 @@ test("simple resistor divider", async () => {
 
   expect(spiceString).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
-    RR1 0 N1 1K
-    RR2 N1 0 2K
+    RR1 N2 N1 1K
+    RR2 N1 N3 2K
     .END"
   `)
 })
