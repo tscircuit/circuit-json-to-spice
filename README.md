@@ -5,7 +5,7 @@ Convert Circuit JSON into ngspice compatible SPICE netlists
 ## Installation
 
 ```bash
-npm install circuit-json-to-spice
+bun add circuit-json-to-spice
 ```
 
 ## Usage
