@@ -6,7 +6,7 @@ import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
 import { DiodeCommand } from "./spice-commands/DiodeCommand"
 import { InductorCommand } from "./spice-commands/InductorCommand"
 import { VoltageControlledSwitchCommand } from "./spice-commands/VoltageControlledSwitchCommand"
-import type { AnyCircuitElement } from "circuit-json"
+import type { AnyCircuitElement, SimulationSwitch } from "circuit-json"
 import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
 import { su } from "@tscircuit/soup-util"
 
@@ -16,6 +16,16 @@ export function circuitJsonToSpice(
   const netlist = new SpiceNetlist("* Circuit JSON to SPICE Netlist")
   const sourceComponents = su(circuitJson).source_component.list()
   const sourcePorts = su(circuitJson).source_port.list()
+  const simulationSwitches = circuitJson
+    .filter(
+      (element) => (element as { type?: string }).type === "simulation_switch",
+    )
+    .map((element) => element as unknown as SimulationSwitch)
+  const simulationSwitchMap = new Map<string, SimulationSwitch>()
+
+  for (const simSwitch of simulationSwitches) {
+    simulationSwitchMap.set(simSwitch.simulation_switch_id, simSwitch)
+  }
 
   const connMap = getSourcePortConnectivityMapFromCircuitJson(circuitJson)
 
@@ -132,6 +142,76 @@ export function circuitJsonToSpice(
               nodes,
             )
           }
+          break
+        }
+        case "simple_switch": {
+          const sanitizedBase = sanitizeIdentifier(
+            component.name ?? component.source_component_id,
+            "SW",
+          )
+          const positiveNode = nodes[0] || "0"
+          const negativeNode = nodes[1] || "0"
+          const controlNode = `NCTRL_${sanitizedBase}`
+          const modelName = `SW_${sanitizedBase}`
+
+          const componentWithMaybeSwitchId = component as unknown as {
+            simulation_switch_id?: string
+          }
+
+          const candidateSwitchIds = [
+            componentWithMaybeSwitchId.simulation_switch_id,
+            component.source_component_id,
+            component.name,
+          ].filter((id): id is string => Boolean(id))
+
+          let associatedSimulationSwitch: SimulationSwitch | undefined
+          for (const switchId of candidateSwitchIds) {
+            associatedSimulationSwitch = simulationSwitchMap.get(switchId)
+            if (associatedSimulationSwitch) break
+          }
+
+          const controlValue = buildSimulationSwitchControlValue(
+            associatedSimulationSwitch,
+          )
+
+          const switchCmd = new VoltageControlledSwitchCommand({
+            name: sanitizedBase,
+            positiveNode,
+            negativeNode,
+            positiveControl: controlNode,
+            negativeControl: "0",
+            model: modelName,
+          })
+
+          spiceComponent = new SpiceComponent(sanitizedBase, switchCmd, [
+            positiveNode,
+            negativeNode,
+            controlNode,
+            "0",
+          ])
+
+          if (!netlist.models.has(modelName)) {
+            netlist.models.set(
+              modelName,
+              `.MODEL ${modelName} SW(Ron=0.1 Roff=1e9 Vt=2.5 Vh=0.1)`,
+            )
+          }
+
+          const controlSourceName = `CTRL_${sanitizedBase}`
+          const controlSourceCmd = new VoltageSourceCommand({
+            name: controlSourceName,
+            positiveNode: controlNode,
+            negativeNode: "0",
+            value: controlValue,
+          })
+
+          const controlComponent = new SpiceComponent(
+            controlSourceName,
+            controlSourceCmd,
+            [controlNode, "0"],
+          )
+
+          netlist.addComponent(controlComponent)
           break
         }
 
@@ -375,4 +455,74 @@ function formatInductance(inductance: number): string {
   if (inductance >= 1e-9) return `${inductance * 1e9}n`
   if (inductance >= 1e-12) return `${inductance * 1e12}p`
   return inductance.toString()
+}
+
+function sanitizeIdentifier(value: string | undefined, prefix: string) {
+  if (!value) return prefix
+  const sanitized = value.replace(/[^A-Za-z0-9_]/g, "_")
+  if (!sanitized) return prefix
+  if (/^[0-9]/.test(sanitized)) {
+    return `${prefix}_${sanitized}`
+  }
+  return sanitized
+}
+
+function buildSimulationSwitchControlValue(
+  simulationSwitch: SimulationSwitch | undefined,
+) {
+  const highVoltage = 5
+  const lowVoltage = 0
+  const riseTime = "1n"
+  const fallTime = "1n"
+
+  if (!simulationSwitch) {
+    return `DC ${lowVoltage}`
+  }
+
+  const startsClosed = simulationSwitch.starts_closed ?? false
+  const closesAt = simulationSwitch.closes_at ?? 0
+  const opensAt = simulationSwitch.opens_at
+  const switchingFrequency = simulationSwitch.switching_frequency
+
+  const [initialVoltage, pulsedVoltage] = startsClosed
+    ? [highVoltage, lowVoltage]
+    : [lowVoltage, highVoltage]
+
+  if (switchingFrequency && switchingFrequency > 0) {
+    const period = 1 / switchingFrequency
+    const widthFromOpenClose =
+      opensAt && opensAt > closesAt ? Math.min(opensAt - closesAt, period) : 0
+    const pulseWidth =
+      widthFromOpenClose > 0 ? widthFromOpenClose : Math.max(period / 2, 1e-9)
+
+    return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
+  }
+
+  if (opensAt !== undefined && opensAt > closesAt) {
+    const pulseWidth = Math.max(opensAt - closesAt, 1e-9)
+    const period = closesAt + pulseWidth * 2
+
+    return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
+  }
+
+  if (closesAt > 0) {
+    const period = closesAt * 2
+    const pulseWidth = Math.max(period / 2, 1e-9)
+    return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
+  }
+
+  return `DC ${startsClosed ? highVoltage : lowVoltage}`
+}
+
+function formatNumberForSpice(value: number) {
+  if (!Number.isFinite(value)) return `${value}`
+  if (value === 0) return "0"
+
+  const absValue = Math.abs(value)
+
+  if (absValue >= 1e3 || absValue <= 1e-3) {
+    return Number(value.toExponential(6)).toString()
+  }
+
+  return Number(value.toPrecision(6)).toString()
 }

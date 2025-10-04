@@ -103,3 +103,100 @@ test("circuit with simulation voltage source", async () => {
     .END"
   `)
 })
+
+test("simple switch uses simulation switch control", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "RLOAD",
+      name: "R1",
+      ftype: "simple_resistor",
+      resistance: 1000,
+    } as AnyCircuitElement,
+    {
+      type: "source_component",
+      source_component_id: "SW1",
+      name: "SW1",
+      ftype: "simple_switch",
+      simulation_switch_id: "switch_SW1",
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_gnd",
+      name: "GND",
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_vin",
+      name: "VIN",
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_vout",
+      name: "VOUT",
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "RLOAD_pin1",
+      source_component_id: "RLOAD",
+      name: "pin1",
+      pin_number: 1,
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "RLOAD_pin2",
+      source_component_id: "RLOAD",
+      name: "pin2",
+      pin_number: 2,
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "SW1_pin1",
+      source_component_id: "SW1",
+      name: "pin1",
+      pin_number: 1,
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "SW1_pin2",
+      source_component_id: "SW1",
+      name: "pin2",
+      pin_number: 2,
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_vout",
+      connected_source_port_ids: ["RLOAD_pin1", "SW1_pin2"],
+      connected_source_net_ids: ["net_vout"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_gnd",
+      connected_source_port_ids: ["RLOAD_pin2"],
+      connected_source_net_ids: ["net_gnd"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_vin",
+      connected_source_port_ids: ["SW1_pin1"],
+      connected_source_net_ids: ["net_vin"],
+    } as AnyCircuitElement,
+    {
+      type: "simulation_switch",
+      simulation_switch_id: "switch_SW1",
+      switching_frequency: 1000,
+      starts_closed: false,
+    } as unknown as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+
+  expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    .MODEL SW_SW1 SW(Ron=0.1 Roff=1e9 Vt=2.5 Vh=0.1)
+    RR1 N1 0 1K
+    VCTRL_SW1 NCTRL_SW1 0 PULSE(0 5 0 1n 1n 0.0005 0.001)
+    SSW1 N2 N1 NCTRL_SW1 0 SW_SW1
+    .END"
+  `)
+})
