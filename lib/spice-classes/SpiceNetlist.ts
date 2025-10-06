@@ -9,6 +9,7 @@ export class SpiceNetlist {
   controls: string[]
   subcircuits: SpiceSubcircuit[]
   models: Map<string, string>
+  tranCommand: string | null
 
   constructor(title = "Circuit Netlist") {
     this.title = title
@@ -17,6 +18,7 @@ export class SpiceNetlist {
     this.controls = []
     this.subcircuits = []
     this.models = new Map()
+    this.tranCommand = null
   }
 
   addComponent(component: SpiceComponent) {

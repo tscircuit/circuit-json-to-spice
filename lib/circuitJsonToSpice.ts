@@ -431,6 +431,29 @@ export function circuitJsonToSpice(
     }
   }
 
+  const simExperiment = circuitJson.find(
+    (elm) => elm.type === "simulation_experiment",
+  )
+
+  if (simExperiment) {
+    const timePerStep = simExperiment.time_per_step
+    const endTime = simExperiment.end_time_ms
+    const startTimeMs = simExperiment.start_time_ms
+
+    if (timePerStep && endTime) {
+      // circuit-json values are in ms, SPICE requires seconds
+      const startTime = (startTimeMs ?? 0) / 1000
+
+      let tranCmd = `.tran ${formatNumberForSpice(
+        timePerStep / 1000,
+      )} ${formatNumberForSpice(endTime / 1000)}`
+      if (startTime > 0) {
+        tranCmd += ` ${formatNumberForSpice(startTime)}`
+      }
+      netlist.tranCommand = tranCmd
+    }
+  }
+
   return netlist
 }
 
