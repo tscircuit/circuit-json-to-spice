@@ -28,6 +28,13 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
     lines.push(".endc")
   }
 
+  if (
+    netlist.tranCommand &&
+    !lines.some((l) => l.trim().toLowerCase().startsWith(".tran"))
+  ) {
+    lines.push(netlist.tranCommand)
+  }
+
   // End with .END
   lines.push(".END")
 

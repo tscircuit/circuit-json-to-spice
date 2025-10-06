@@ -431,6 +431,25 @@ export function circuitJsonToSpice(
     }
   }
 
+  const simTVGraph = circuitJson.find(
+    (elm) => elm.type === "simulation_transient_voltage_graph",
+  )
+
+  if (simTVGraph) {
+    // circuit-json values are in ms, SPICE requires seconds
+    const timePerStep = simTVGraph.time_per_step / 1000
+    const endTime = simTVGraph.end_time_ms / 1000
+    const startTime = simTVGraph.start_time_ms / 1000
+
+    let tranCmd = `.tran ${formatNumberForSpice(
+      timePerStep,
+    )} ${formatNumberForSpice(endTime)}`
+    if (startTime > 0) {
+      tranCmd += ` ${formatNumberForSpice(startTime)}`
+    }
+    netlist.tranCommand = tranCmd
+  }
+
   return netlist
 }
 
