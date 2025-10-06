@@ -125,6 +125,10 @@ dist
 # yarn v2
 .yarn/cache
 .yarn/unplugged
+
+package-lock.json
+bun.lock
+bun.lockb
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
