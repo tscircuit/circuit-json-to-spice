@@ -431,23 +431,27 @@ export function circuitJsonToSpice(
     }
   }
 
-  const simTVGraph = circuitJson.find(
-    (elm) => elm.type === "simulation_transient_voltage_graph",
+  const simExperiment = circuitJson.find(
+    (elm) => elm.type === "simulation_experiment",
   )
 
-  if (simTVGraph) {
-    // circuit-json values are in ms, SPICE requires seconds
-    const timePerStep = simTVGraph.time_per_step / 1000
-    const endTime = simTVGraph.end_time_ms / 1000
-    const startTime = simTVGraph.start_time_ms / 1000
+  if (simExperiment) {
+    const timePerStep = simExperiment.time_per_step
+    const endTime = simExperiment.end_time_ms
+    const startTimeMs = simExperiment.start_time_ms
 
-    let tranCmd = `.tran ${formatNumberForSpice(
-      timePerStep,
-    )} ${formatNumberForSpice(endTime)}`
-    if (startTime > 0) {
-      tranCmd += ` ${formatNumberForSpice(startTime)}`
+    if (timePerStep && endTime) {
+      // circuit-json values are in ms, SPICE requires seconds
+      const startTime = (startTimeMs ?? 0) / 1000
+
+      let tranCmd = `.tran ${formatNumberForSpice(
+        timePerStep / 1000,
+      )} ${formatNumberForSpice(endTime / 1000)}`
+      if (startTime > 0) {
+        tranCmd += ` ${formatNumberForSpice(startTime)}`
+      }
+      netlist.tranCommand = tranCmd
     }
-    netlist.tranCommand = tranCmd
   }
 
   return netlist
