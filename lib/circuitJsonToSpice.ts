@@ -436,9 +436,51 @@ export function circuitJsonToSpice(
   )
 
   if (simExperiment) {
-    const timePerStep = simExperiment.time_per_step
-    const endTime = simExperiment.end_time_ms
-    const startTimeMs = simExperiment.start_time_ms
+    // Process simulation voltage probes
+    const simulationProbes = circuitJson.filter(
+      (elm) => elm.type === "simulation_voltage_probe",
+    ) as unknown as Array<{
+      type: "simulation_voltage_probe"
+      source_port_id?: string
+      source_net_id?: string
+    }>
+
+    if (simulationProbes.length > 0) {
+      const sourceTraces = su(circuitJson).source_trace.list()
+      const nodesToProbe = new Set<string>()
+
+      for (const probe of simulationProbes) {
+        let nodeName: string | undefined
+        if (probe.source_port_id) {
+          nodeName = nodeMap.get(probe.source_port_id)
+        } else if (probe.source_net_id) {
+          const trace = sourceTraces.find((t) =>
+            t.connected_source_net_ids.includes(probe.source_net_id!),
+          )
+          if (trace && trace.connected_source_port_ids.length > 0) {
+            const portId = trace.connected_source_port_ids[0]
+            nodeName = nodeMap.get(portId)
+          }
+        }
+
+        if (nodeName && nodeName !== "0") {
+          nodesToProbe.add(`V(${nodeName.toLowerCase()})`)
+        }
+      }
+
+      if (
+        nodesToProbe.size > 0 &&
+        (simExperiment as any).experiment_type?.includes("transient")
+      ) {
+        netlist.printStatements.push(
+          `.PRINT TRAN ${[...nodesToProbe].join(" ")}`,
+        )
+      }
+    }
+
+    const timePerStep = (simExperiment as any).time_per_step
+    const endTime = (simExperiment as any).end_time_ms
+    const startTimeMs = (simExperiment as any).start_time_ms
 
     if (timePerStep && endTime) {
       // circuit-json values are in ms, SPICE requires seconds
