@@ -106,16 +106,19 @@ test("simulation switch drives square wave", async () => {
       type: "source_net",
       source_net_id: "net_gnd",
       name: "GND",
+      member_source_group_ids: [],
     } as AnyCircuitElement,
     {
       type: "source_net",
       source_net_id: "net_vin",
       name: "VIN",
+      member_source_group_ids: [],
     } as AnyCircuitElement,
     {
       type: "source_net",
       source_net_id: "net_vout",
       name: "VOUT",
+      member_source_group_ids: [],
     } as AnyCircuitElement,
     {
       type: "source_port",
