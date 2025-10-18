@@ -24,7 +24,9 @@ export function circuitJsonToSpice(
   const simulationSwitchMap = new Map<string, SimulationSwitch>()
 
   for (const simSwitch of simulationSwitches) {
-    simulationSwitchMap.set(simSwitch.simulation_switch_id, simSwitch)
+    if (simSwitch.source_component_id) {
+      simulationSwitchMap.set(simSwitch.source_component_id, simSwitch)
+    }
   }
 
   const connMap = getSourcePortConnectivityMapFromCircuitJson(circuitJson)
@@ -154,21 +156,9 @@ export function circuitJsonToSpice(
           const controlNode = `NCTRL_${sanitizedBase}`
           const modelName = `SW_${sanitizedBase}`
 
-          const componentWithMaybeSwitchId = component as unknown as {
-            simulation_switch_id?: string
-          }
-
-          const candidateSwitchIds = [
-            componentWithMaybeSwitchId.simulation_switch_id,
+          const associatedSimulationSwitch = simulationSwitchMap.get(
             component.source_component_id,
-            component.name,
-          ].filter((id): id is string => Boolean(id))
-
-          let associatedSimulationSwitch: SimulationSwitch | undefined
-          for (const switchId of candidateSwitchIds) {
-            associatedSimulationSwitch = simulationSwitchMap.get(switchId)
-            if (associatedSimulationSwitch) break
-          }
+          )
 
           const controlValue = buildSimulationSwitchControlValue(
             associatedSimulationSwitch,
