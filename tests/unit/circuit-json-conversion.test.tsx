@@ -118,7 +118,6 @@ test("simple switch uses simulation switch control", () => {
       source_component_id: "SW1",
       name: "SW1",
       ftype: "simple_switch",
-      simulation_switch_id: "switch_SW1",
     } as AnyCircuitElement,
     {
       type: "source_net",
@@ -187,6 +186,7 @@ test("simple switch uses simulation switch control", () => {
     {
       type: "simulation_switch",
       simulation_switch_id: "switch_SW1",
+      source_component_id: "SW1",
       switching_frequency: 1000,
       starts_closed: false,
     } as unknown as AnyCircuitElement,
