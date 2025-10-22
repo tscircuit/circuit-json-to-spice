@@ -39,11 +39,11 @@ test("circuit with simulation experiment adds .tran command", () => {
   const netlist = circuitJsonToSpice(circuitJson)
   const spiceString = netlist.toSpiceString()
 
-  expect(spiceString).toContain(".tran 0.001 0.1 0.01")
+  expect(spiceString).toContain(".tran 0.001 0.1 0.01 UIC")
   expect(spiceString).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
     RR1 N1 N2 1K
-    .tran 0.001 0.1 0.01
+    .tran 0.001 0.1 0.01 UIC
     .END"
   `)
 })
@@ -141,12 +141,12 @@ test("circuit with simulation experiment and 0 start time adds .tran command", (
   const netlist = circuitJsonToSpice(circuitJson)
   const spiceString = netlist.toSpiceString()
 
-  expect(spiceString).toContain(".tran 0.001 0.1")
+  expect(spiceString).toContain(".tran 0.001 0.1 UIC")
   expect(spiceString).not.toContain(" 0.01")
   expect(spiceString).toMatchInlineSnapshot(`
     "* Circuit JSON to SPICE Netlist
     RR1 N1 N2 1K
-    .tran 0.001 0.1
+    .tran 0.001 0.1 UIC
     .END"
   `)
 })
