@@ -482,6 +482,7 @@ export function circuitJsonToSpice(
       if (startTime > 0) {
         tranCmd += ` ${formatNumberForSpice(startTime)}`
       }
+      tranCmd += " UIC"
       netlist.tranCommand = tranCmd
     }
   }
