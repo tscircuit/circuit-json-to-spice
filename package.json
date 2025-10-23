@@ -17,14 +17,15 @@
     "bun-match-svg": "^0.0.13",
     "eecircuit-engine": "^1.5.2",
     "tscircuit": "^0.0.610",
-    "tsup": "^8.4.0"
+    "tsup": "^8.4.0",
+    "circuit-json": "^0.0.288",
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "circuit-json": "*"
   },
   "dependencies": {
     "@tscircuit/soup-util": "^0.0.41",
-    "circuit-json": "^0.0.288",
     "circuit-json-to-connectivity-map": "^0.0.22"
   }
 }
