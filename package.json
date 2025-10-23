@@ -15,14 +15,14 @@
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "^1.2.15",
     "bun-match-svg": "^0.0.13",
+    "circuit-json": "^0.0.288",
     "eecircuit-engine": "^1.5.2",
     "tscircuit": "^0.0.610",
-    "tsup": "^8.4.0",
-    "circuit-json": "^0.0.288"
+    "tsup": "^8.4.0"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0",
-    "circuit-json": "*"
+    "circuit-json": "*",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@tscircuit/soup-util": "^0.0.41",
