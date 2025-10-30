@@ -8,7 +8,7 @@ import { InductorCommand } from "./spice-commands/InductorCommand"
 import { VoltageControlledSwitchCommand } from "./spice-commands/VoltageControlledSwitchCommand"
 import type { AnyCircuitElement, SimulationSwitch } from "circuit-json"
 import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
-import { su } from "@tscircuit/soup-util"
+import { su } from "@tscircuit/circuit-json-util"
 
 export function circuitJsonToSpice(
   circuitJson: AnyCircuitElement[],
