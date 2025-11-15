@@ -6,7 +6,11 @@ import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
 import { DiodeCommand } from "./spice-commands/DiodeCommand"
 import { InductorCommand } from "./spice-commands/InductorCommand"
 import { VoltageControlledSwitchCommand } from "./spice-commands/VoltageControlledSwitchCommand"
-import type { AnyCircuitElement, SimulationSwitch } from "circuit-json"
+import type {
+  AnyCircuitElement,
+  SimulationSwitch,
+  SimulationVoltageProbe,
+} from "circuit-json"
 import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
 import { su } from "@tscircuit/circuit-json-util"
 
@@ -16,6 +20,10 @@ export function circuitJsonToSpice(
   const netlist = new SpiceNetlist("* Circuit JSON to SPICE Netlist")
   const sourceComponents = su(circuitJson).source_component.list()
   const sourcePorts = su(circuitJson).source_port.list()
+  const sourceTraces = su(circuitJson).source_trace.list()
+  const simulationProbes = circuitJson.filter(
+    (elm) => elm.type === "simulation_voltage_probe",
+  ) as SimulationVoltageProbe[]
   const simulationSwitches = circuitJson
     .filter(
       (element) => (element as { type?: string }).type === "simulation_switch",
@@ -35,6 +43,25 @@ export function circuitJsonToSpice(
   const nodeMap = new Map<string, string>()
   const netToNodeName = new Map<string, string>()
   let nodeCounter = 1
+
+  const probeNames = new Set<string>()
+  if (simulationProbes.length > 0) {
+    for (const probe of simulationProbes) {
+      if (probe.name) {
+        probeNames.add(probe.name)
+      }
+    }
+  }
+
+  // If there are probe names like N1, N2, make sure we don't have conflicts
+  const numericProbeNames = [...probeNames]
+    .map((name) => /^N(\d+)$/i.exec(name))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => parseInt(m[1], 10))
+
+  if (numericProbeNames.length > 0) {
+    nodeCounter = Math.max(...numericProbeNames) + 1
+  }
 
   const groundNets = new Set<string>()
 
@@ -86,6 +113,35 @@ export function circuitJsonToSpice(
 
   for (const groundNet of groundNets) {
     netToNodeName.set(groundNet, "0")
+  }
+
+  // Pre-assign node names from voltage probes
+  if (simulationProbes.length > 0) {
+    for (const probe of simulationProbes) {
+      if (!probe.name) continue
+      let net: string | undefined | null
+      if (probe.source_port_id) {
+        net = connMap.getNetConnectedToId(probe.source_port_id)
+      } else if (probe.source_net_id) {
+        const trace = sourceTraces.find((t) =>
+          t.connected_source_net_ids.includes(probe.source_net_id!),
+        )
+        if (trace && trace.connected_source_port_ids.length > 0) {
+          const portId = trace.connected_source_port_ids[0]
+          net = connMap.getNetConnectedToId(portId)
+        }
+      }
+
+      if (net) {
+        if (!netToNodeName.has(net)) {
+          netToNodeName.set(net, probe.name)
+        }
+      } else if (probe.source_port_id && probe.name) {
+        // It's a floating port with a probe, so we map it directly. This port
+        // will now be skipped in the second-pass for unconnected ports.
+        nodeMap.set(probe.source_port_id, probe.name)
+      }
+    }
   }
 
   // First pass: assign node numbers to all connected nets
@@ -427,16 +483,7 @@ export function circuitJsonToSpice(
 
   if (simExperiment) {
     // Process simulation voltage probes
-    const simulationProbes = circuitJson.filter(
-      (elm) => elm.type === "simulation_voltage_probe",
-    ) as unknown as Array<{
-      type: "simulation_voltage_probe"
-      source_port_id?: string
-      source_net_id?: string
-    }>
-
     if (simulationProbes.length > 0) {
-      const sourceTraces = su(circuitJson).source_trace.list()
       const nodesToProbe = new Set<string>()
 
       for (const probe of simulationProbes) {
