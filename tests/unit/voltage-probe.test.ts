@@ -81,7 +81,7 @@ test("voltage probe with source_port_id creates .PRINT statement", () => {
   const netlist = circuitJsonToSpice(circuitJson)
   const spiceString = netlist.toSpiceString()
 
-  expect(spiceString).toContain(`.PRINT TRAN V(vout)`)
+  expect(spiceString).toContain(`.PRINT TRAN V(VOUT)`)
   expect(spiceString).toContain(`RR1 N1 VOUT 1K`)
   expect(spiceString).toContain(`RR2 VOUT N2 1K`)
 })
@@ -99,7 +99,7 @@ test("voltage probe with source_net_id creates .PRINT statement", () => {
   const netlist = circuitJsonToSpice(circuitJson)
   const spiceString = netlist.toSpiceString()
 
-  expect(spiceString).toContain(`.PRINT TRAN V(vout)`)
+  expect(spiceString).toContain(`.PRINT TRAN V(VOUT)`)
   expect(spiceString).toContain(`RR1 N1 VOUT 1K`)
   expect(spiceString).toContain(`RR2 VOUT N2 1K`)
 })
@@ -153,7 +153,7 @@ test("voltage probe on ground node is ignored, but other probes are not", () => 
 
   // `R2_p2` is now connected to GND, so it's node 0 and should be ignored
   // `R1_p2` is a non-gnd node and should be printed.
-  expect(spiceString).toContain(`.PRINT TRAN V(vout)`)
+  expect(spiceString).toContain(`.PRINT TRAN V(VOUT)`)
   expect(spiceString).not.toContain("V(0)")
   expect(spiceString).toContain("RR1 N1 VOUT 1K")
   expect(spiceString).toContain("RR2 VOUT 0 1K")
@@ -183,8 +183,8 @@ test("multiple voltage probes create single .PRINT statement", () => {
 
   // The order of probes in the .PRINT statement is not guaranteed
   expect(spiceString).toContain(".PRINT TRAN")
-  expect(spiceString).toContain("V(n1)")
-  expect(spiceString).toContain("V(vout)")
+  expect(spiceString).toContain("V(N1)")
+  expect(spiceString).toContain("V(VOUT)")
 })
 
 test("probes with N-style names don't conflict with auto-generated names", () => {
@@ -367,9 +367,9 @@ test("probes with N-style names don't conflict with auto-generated names", () =>
 
   // The order of probes in the .PRINT statement is not guaranteed
   expect(spiceString).toContain(".PRINT TRAN")
-  expect(spiceString).toContain("V(n1)")
-  expect(spiceString).toContain("V(n2)")
-  expect(spiceString).toContain("V(n4)")
+  expect(spiceString).toContain("V(N1)")
+  expect(spiceString).toContain("V(N2)")
+  expect(spiceString).toContain("V(N4)")
   expect(spiceString).not.toContain("V(n3)")
   expect(spiceString).not.toContain("V(n5)")
 })
