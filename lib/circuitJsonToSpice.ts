@@ -501,7 +501,7 @@ export function circuitJsonToSpice(
         }
 
         if (nodeName && nodeName !== "0") {
-          nodesToProbe.add(`V(${nodeName.toLowerCase()})`)
+          nodesToProbe.add(`V(${nodeName})`)
         }
       }
 
