@@ -1,8 +1,9 @@
 import { test, expect } from "bun:test"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import type { AnyCircuitElement } from "circuit-json"
-import { getTestFixture } from "tests/fixtures/getTestFixture"
-import { sel } from "tscircuit"
+import singleResistorCircuit from "./assets/single-resistor-circuit.json"
+import rcCircuitWithTrace from "./assets/RC-circuit-with-trace.json"
+import circuitWithSimulationVoltageSource from "./assets/circuit-with-simulation-voltage-source.json"
 
 test("empty circuit JSON", () => {
   const circuitJson: AnyCircuitElement[] = []
@@ -16,18 +17,7 @@ test("empty circuit JSON", () => {
 })
 
 test("single resistor circuit", async () => {
-  const { circuit } = await getTestFixture()
-
-  circuit.add(
-    <board>
-      <resistor name="R1" resistance="1k" />
-      <trace from="net.GND" to={sel.R1.pin2} />
-    </board>,
-  )
-
-  await circuit.renderUntilSettled()
-
-  const circuitJson = circuit.getCircuitJson()
+  const circuitJson = singleResistorCircuit as any
   const netlist = circuitJsonToSpice(circuitJson)
 
   expect(netlist.components).toHaveLength(1)
@@ -39,21 +29,7 @@ test("single resistor circuit", async () => {
 })
 
 test("RC circuit with trace", async () => {
-  const { circuit } = await getTestFixture()
-
-  circuit.add(
-    <board>
-      <resistor name="R1" resistance="1k" />
-      <capacitor name="C1" capacitance="1uF" />
-      <trace from={sel.R1.pin2} to={sel.C1.pin1} />
-      <trace from="net.GND1" to={sel.R1.pin1} />
-      <trace from="net.GND2" to={sel.C1.pin2} />
-    </board>,
-  )
-
-  await circuit.renderUntilSettled()
-
-  const circuitJson = circuit.getCircuitJson()
+  const circuitJson = rcCircuitWithTrace as any
   const netlist = circuitJsonToSpice(circuitJson)
 
   expect(netlist.components).toHaveLength(2)
@@ -66,33 +42,7 @@ test("RC circuit with trace", async () => {
 })
 
 test("circuit with simulation voltage source", async () => {
-  const { circuit } = await getTestFixture()
-
-  circuit.add(
-    <board>
-      <resistor name="R1" resistance="1k" />
-      <chip
-        name="U1"
-        footprint="soic8"
-        pinLabels={{
-          pin2: "GND",
-          pin3: "VOUT",
-        }}
-        pinAttributes={{
-          VOUT: { providesPower: true, providesVoltage: 5 },
-          GND: { providesGround: true },
-        }}
-      />
-      <trace from={"net.VCC"} to={sel<"VOUT">("U1").VOUT} />
-      <trace from={"net.GND"} to={sel<"GND">("U1").GND} />
-      <trace from={"net.VCC"} to={sel.R1.pin1} />
-      <trace from={"net.GND"} to={sel.R1.pin2} />
-    </board>,
-  )
-
-  await circuit.renderUntilSettled()
-
-  const circuitJson = circuit.getCircuitJson()
+  const circuitJson = circuitWithSimulationVoltageSource as any
   const netlist = circuitJsonToSpice(circuitJson)
 
   expect(netlist.components).toHaveLength(2)
@@ -118,7 +68,7 @@ test("simple switch uses simulation switch control", () => {
       source_component_id: "SW1",
       name: "SW1",
       ftype: "simple_switch",
-    } as AnyCircuitElement,
+    },
     {
       type: "source_net",
       source_net_id: "net_gnd",
