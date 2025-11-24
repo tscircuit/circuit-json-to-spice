@@ -1,30 +1,11 @@
 import { test, expect } from "bun:test"
-import { sel } from "tscircuit"
-import { getTestFixture } from "tests/fixtures/getTestFixture"
-import { convertSpiceNetlistToString } from "lib/spice-utils/convertSpiceNetlistToString"
+import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
+import example01 from "./assets/example01.json"
 
 test("example01", async () => {
-  const { circuit } = await getTestFixture()
-
-  circuit.add(
-    <board>
-      <resistor name="R1" resistance="1k" />
-      <capacitor
-        name="C1"
-        capacitance="1uF"
-        connections={{
-          pin1: sel.R1.pin1,
-        }}
-      />
-    </board>,
-  )
-
-  await circuit.renderUntilSettled()
-
-  const circuitJson = circuit.getCircuitJson()
+  const circuitJson = example01 as any
 
   // Convert circuit JSON to SPICE
-  const { circuitJsonToSpice } = await import("lib/circuitJsonToSpice")
   const spiceNetlist = circuitJsonToSpice(circuitJson)
   const spiceString = spiceNetlist.toSpiceString()
 
