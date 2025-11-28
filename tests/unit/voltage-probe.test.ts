@@ -68,14 +68,15 @@ const baseCircuit: AnyCircuitElement[] = [
   },
 ]
 
-test("voltage probe with source_port_id creates .PRINT statement", () => {
+test("voltage probe with signal_input_source_port_id creates .PRINT statement", () => {
   const circuitJson: AnyCircuitElement[] = [
     ...baseCircuit,
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p2",
+      simulation_voltage_probe_id: "probe1",
+      signal_input_source_port_id: "R1_p2",
       name: "VOUT",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -86,14 +87,15 @@ test("voltage probe with source_port_id creates .PRINT statement", () => {
   expect(spiceString).toContain(`RR2 VOUT N2 1K`)
 })
 
-test("voltage probe with source_net_id creates .PRINT statement", () => {
+test("voltage probe with signal_input_source_net_id creates .PRINT statement", () => {
   const circuitJson: AnyCircuitElement[] = [
     ...baseCircuit,
     {
       type: "simulation_voltage_probe",
-      source_net_id: "net1",
+      simulation_voltage_probe_id: "probe1",
+      signal_input_source_net_id: "net1",
       name: "VOUT",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -109,9 +111,10 @@ test("voltage probe without transient analysis does not create .PRINT statement"
     ...baseCircuit.filter((e) => e.type !== "simulation_experiment"),
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p2",
+      simulation_voltage_probe_id: "probe1",
+      signal_input_source_port_id: "R1_p2",
       name: "VOUT",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -138,14 +141,16 @@ test("voltage probe on ground node is ignored, but other probes are not", () => 
     },
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R2_p2",
+      simulation_voltage_probe_id: "probe_gnd",
+      signal_input_source_port_id: "R2_p2",
       name: "probe_gnd",
-    } as SimulationVoltageProbe,
+    },
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p2",
+      simulation_voltage_probe_id: "probe_vout",
+      signal_input_source_port_id: "R1_p2",
       name: "VOUT",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -164,14 +169,16 @@ test("multiple voltage probes create single .PRINT statement", () => {
     ...baseCircuit,
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p1",
+      simulation_voltage_probe_id: "probe_n1",
+      signal_input_source_port_id: "R1_p1",
       name: "N1",
-    } as SimulationVoltageProbe,
+    },
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p2",
+      simulation_voltage_probe_id: "probe_vout",
+      signal_input_source_port_id: "R1_p2",
       name: "VOUT",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -339,19 +346,22 @@ test("probes with N-style names don't conflict with auto-generated names", () =>
     // Probes
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R1_p1",
+      simulation_voltage_probe_id: "probe_n1",
+      signal_input_source_port_id: "R1_p1",
       name: "N1",
-    } as SimulationVoltageProbe,
+    },
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R2_p1",
+      simulation_voltage_probe_id: "probe_n2",
+      signal_input_source_port_id: "R2_p1",
       name: "N2",
-    } as SimulationVoltageProbe,
+    },
     {
       type: "simulation_voltage_probe",
-      source_port_id: "R4_p1",
+      simulation_voltage_probe_id: "probe_n4",
+      signal_input_source_port_id: "R4_p1",
       name: "N4",
-    } as SimulationVoltageProbe,
+    },
   ]
 
   const netlist = circuitJsonToSpice(circuitJson)
@@ -372,4 +382,47 @@ test("probes with N-style names don't conflict with auto-generated names", () =>
   expect(spiceString).toContain("V(N4)")
   expect(spiceString).not.toContain("V(n3)")
   expect(spiceString).not.toContain("V(n5)")
+})
+
+test("differential voltage probe creates .PRINT statement", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    ...baseCircuit,
+    {
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe_diff",
+      name: "VR1",
+      signal_input_source_port_id: "R1_p1",
+      reference_input_source_port_id: "R1_p2",
+    },
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  expect(spiceString).toContain("RR1 N2 N1 1K")
+  expect(spiceString).toContain("RR2 N1 N3 1K")
+  expect(spiceString).toContain(".PRINT TRAN V(N2,N1)")
+})
+
+test("differential voltage probe without a name creates .PRINT statement", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    ...baseCircuit,
+    {
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe_diff",
+      signal_input_source_port_id: "R1_p1",
+      reference_input_source_port_id: "R1_p2",
+    },
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  // No single-ended probe to name nodes, so nodes are auto-named.
+  // R1_p1 is floating -> N2
+  // R1_p2 is on net1 -> N1
+  // Probe is on R1_p1 and R1_p2, so V(N2,N1)
+  expect(spiceString).toContain("RR1 N2 N1 1K")
+  expect(spiceString).toContain("RR2 N1 N3 1K")
+  expect(spiceString).toContain(".PRINT TRAN V(N2,N1)")
 })
