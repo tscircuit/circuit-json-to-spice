@@ -119,12 +119,23 @@ export function circuitJsonToSpice(
   if (simulationProbes.length > 0) {
     for (const probe of simulationProbes) {
       if (!probe.name) continue
+
+      if (
+        probe.reference_input_source_port_id ||
+        probe.reference_input_source_net_id
+      ) {
+        continue
+      }
+
       let net: string | undefined | null
-      if (probe.source_port_id) {
-        net = connMap.getNetConnectedToId(probe.source_port_id)
-      } else if (probe.source_net_id) {
+      const signal_port_id = probe.signal_input_source_port_id
+      const signal_net_id = probe.signal_input_source_net_id
+
+      if (signal_port_id) {
+        net = connMap.getNetConnectedToId(signal_port_id)
+      } else if (signal_net_id) {
         const trace = sourceTraces.find((t) =>
-          t.connected_source_net_ids.includes(probe.source_net_id!),
+          t.connected_source_net_ids.includes(signal_net_id!),
         )
         if (trace && trace.connected_source_port_ids.length > 0) {
           const portId = trace.connected_source_port_ids[0]
@@ -136,10 +147,10 @@ export function circuitJsonToSpice(
         if (!netToNodeName.has(net)) {
           netToNodeName.set(net, probe.name)
         }
-      } else if (probe.source_port_id && probe.name) {
+      } else if (signal_port_id && probe.name) {
         // It's a floating port with a probe, so we map it directly. This port
         // will now be skipped in the second-pass for unconnected ports.
-        nodeMap.set(probe.source_port_id, probe.name)
+        nodeMap.set(signal_port_id, probe.name)
       }
     }
   }
@@ -486,22 +497,46 @@ export function circuitJsonToSpice(
     if (simulationProbes.length > 0) {
       const nodesToProbe = new Set<string>()
 
+      const getPortIdFromNetId = (netId: string) => {
+        const trace = sourceTraces.find((t) =>
+          t.connected_source_net_ids.includes(netId),
+        )
+        return trace?.connected_source_port_ids[0]
+      }
+
       for (const probe of simulationProbes) {
-        let nodeName: string | undefined
-        if (probe.source_port_id) {
-          nodeName = nodeMap.get(probe.source_port_id)
-        } else if (probe.source_net_id) {
-          const trace = sourceTraces.find((t) =>
-            t.connected_source_net_ids.includes(probe.source_net_id!),
-          )
-          if (trace && trace.connected_source_port_ids.length > 0) {
-            const portId = trace.connected_source_port_ids[0]
-            nodeName = nodeMap.get(portId)
+        let signalPortId = probe.signal_input_source_port_id
+        if (!signalPortId) {
+          const signalNetId = probe.signal_input_source_net_id
+          if (signalNetId) {
+            signalPortId = getPortIdFromNetId(signalNetId)
           }
         }
 
-        if (nodeName && nodeName !== "0") {
-          nodesToProbe.add(`V(${nodeName})`)
+        if (!signalPortId) continue
+
+        const signalNodeName = nodeMap.get(signalPortId)
+        if (!signalNodeName) continue
+
+        let referencePortId = probe.reference_input_source_port_id
+        if (!referencePortId && probe.reference_input_source_net_id) {
+          referencePortId = getPortIdFromNetId(
+            probe.reference_input_source_net_id,
+          )
+        }
+
+        if (referencePortId) {
+          const referenceNodeName = nodeMap.get(referencePortId)
+          if (referenceNodeName && referenceNodeName !== "0") {
+            nodesToProbe.add(`V(${signalNodeName},${referenceNodeName})`)
+          } else if (signalNodeName !== "0") {
+            nodesToProbe.add(`V(${signalNodeName})`)
+          }
+        } else {
+          // Single-ended probe
+          if (signalNodeName !== "0") {
+            nodesToProbe.add(`V(${signalNodeName})`)
+          }
         }
       }
 
