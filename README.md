@@ -69,6 +69,7 @@ Currently supports the following tscircuit components:
 
 - **Resistors** (`simple_resistor`) - Converted to SPICE R components
 - **Capacitors** (`simple_capacitor`) - Converted to SPICE C components
+- **Transistors** (`simple_transistor`) - Converted to SPICE Q components (BJT)
 
 More components will be added in future releases.
 

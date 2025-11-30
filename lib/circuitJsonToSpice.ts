@@ -3,6 +3,7 @@ import { SpiceComponent } from "./spice-classes/SpiceComponent"
 import { ResistorCommand } from "./spice-commands/ResistorCommand"
 import { CapacitorCommand } from "./spice-commands/CapacitorCommand"
 import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
+import { BJTCommand } from "./spice-commands/BJTCommand"
 import { DiodeCommand } from "./spice-commands/DiodeCommand"
 import { InductorCommand } from "./spice-commands/InductorCommand"
 import { VoltageControlledSwitchCommand } from "./spice-commands/VoltageControlledSwitchCommand"
@@ -375,6 +376,59 @@ export function circuitJsonToSpice(
               drainNode,
               gateNode,
               sourceNode,
+            ])
+          }
+          break
+        }
+        case "simple_transistor": {
+          if ("name" in component) {
+            const collectorPort = componentPorts.find(
+              (p) =>
+                p.name?.toLowerCase() === "collector" ||
+                p.port_hints?.includes("collector"),
+            )
+            const basePort = componentPorts.find(
+              (p) =>
+                p.name?.toLowerCase() === "base" ||
+                p.port_hints?.includes("base"),
+            )
+            const emitterPort = componentPorts.find(
+              (p) =>
+                p.name?.toLowerCase() === "emitter" ||
+                p.port_hints?.includes("emitter"),
+            )
+
+            if (!collectorPort || !basePort || !emitterPort) {
+              throw new Error(
+                `Transistor ${component.name} is missing required ports (collector, base, emitter)`,
+              )
+            }
+
+            const collectorNode =
+              nodeMap.get(collectorPort.source_port_id) || "0"
+            const baseNode = nodeMap.get(basePort.source_port_id) || "0"
+            const emitterNode = nodeMap.get(emitterPort.source_port_id) || "0"
+
+            const transistor_type = (component as any).transistor_type ?? "npn"
+            const modelName = transistor_type.toUpperCase()
+            if (!netlist.models.has(modelName)) {
+              netlist.models.set(
+                modelName,
+                `.MODEL ${modelName} ${transistor_type.toUpperCase()}`,
+              )
+            }
+
+            const bjtCmd = new BJTCommand({
+              name: component.name,
+              collector: collectorNode,
+              base: baseNode,
+              emitter: emitterNode,
+              model: modelName,
+            })
+            spiceComponent = new SpiceComponent(component.name, bjtCmd, [
+              collectorNode,
+              baseNode,
+              emitterNode,
             ])
           }
           break
