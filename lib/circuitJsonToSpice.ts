@@ -400,11 +400,12 @@ export function circuitJsonToSpice(
 
             if (!collectorPort || !basePort || !emitterPort) {
               throw new Error(
-                `Transistor ${component.name} is missing required ports (collector, base, emitter)`
+                `Transistor ${component.name} is missing required ports (collector, base, emitter)`,
               )
             }
 
-            const collectorNode = nodeMap.get(collectorPort.source_port_id) || "0"
+            const collectorNode =
+              nodeMap.get(collectorPort.source_port_id) || "0"
             const baseNode = nodeMap.get(basePort.source_port_id) || "0"
             const emitterNode = nodeMap.get(emitterPort.source_port_id) || "0"
 
