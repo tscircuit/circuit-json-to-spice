@@ -17,7 +17,7 @@ test(
     expect(spiceString).toMatchInlineSnapshot(`
       "* Circuit JSON to SPICE Netlist
       .MODEL D D
-      .MODEL NMOS_ENHANCEMENT NMOS
+      .MODEL NMOS_ENHANCEMENT NMOS (VTO=1 KP=0.1)
       LL1 N1 N2 1
       DD1 N2 N3 D
       CC1 N3 0 10U
