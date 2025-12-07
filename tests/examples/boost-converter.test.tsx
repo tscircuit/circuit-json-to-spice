@@ -17,12 +17,12 @@ test(
     expect(spiceString).toMatchInlineSnapshot(`
       "* Circuit JSON to SPICE Netlist
       .MODEL D D
-      .MODEL ENH_SW SW(Ron=0.1 Roff=1e9 Vt=2.5 Vh=0.1)
+      .MODEL NMOS_ENHANCEMENT NMOS
       LL1 N1 N2 1
       DD1 N2 N3 D
       CC1 N3 0 10U
       RR1 N3 0 1K
-      SM1 N2 0 N4 0 ENH_SW
+      MM1 N2 N4 0 0 NMOS_ENHANCEMENT
       Vsimulation_voltage_source_0 N1 0 DC 5
       Vsimulation_voltage_source_1 N4 0 PULSE(0 10 0 1n 1n 0.00068 0.001)
       .END"

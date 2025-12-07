@@ -6,6 +6,7 @@ import { VoltageSourceCommand } from "./spice-commands/VoltageSourceCommand"
 import { BJTCommand } from "./spice-commands/BJTCommand"
 import { DiodeCommand } from "./spice-commands/DiodeCommand"
 import { InductorCommand } from "./spice-commands/InductorCommand"
+import { MOSFETCommand } from "./spice-commands/MOSFETCommand"
 import { VoltageControlledSwitchCommand } from "./spice-commands/VoltageControlledSwitchCommand"
 import type {
   AnyCircuitElement,
@@ -361,33 +362,29 @@ export function circuitJsonToSpice(
             const sourceNode =
               nodeMap.get(sourcePort?.source_port_id ?? "") || "0"
 
-            const channel_type = component.channel_type
+            // For 3-pin MOSFETs, substrate is typically connected to source
+            const substrateNode = sourceNode
 
-            let positiveControl = gateNode
-            let negativeControl = sourceNode
-            if (channel_type === "p") {
-              positiveControl = sourceNode
-              negativeControl = gateNode
-            }
+            const channel_type = (component as any).channel_type ?? "n"
+            const mosfet_mode = (component as any).mosfet_mode ?? "enhancement"
 
-            const modelName = "ENH_SW"
+            const modelType = `${channel_type.toUpperCase()}MOS`
+            const modelName = `${modelType}_${mosfet_mode.toUpperCase()}`
+
             if (!netlist.models.has(modelName)) {
-              netlist.models.set(
-                modelName,
-                `.MODEL ${modelName} SW(Ron=0.1 Roff=1e9 Vt=2.5 Vh=0.1)`,
-              )
+              netlist.models.set(modelName, `.MODEL ${modelName} ${modelType}`)
             }
 
-            const switchCmd = new VoltageControlledSwitchCommand({
+            const mosfetCmd = new MOSFETCommand({
               name: component.name,
-              positiveNode: drainNode,
-              negativeNode: sourceNode,
-              positiveControl,
-              negativeControl,
+              drain: drainNode,
+              gate: gateNode,
+              source: sourceNode,
+              substrate: substrateNode,
               model: modelName,
             })
 
-            spiceComponent = new SpiceComponent(component.name, switchCmd, [
+            spiceComponent = new SpiceComponent(component.name, mosfetCmd, [
               drainNode,
               gateNode,
               sourceNode,
