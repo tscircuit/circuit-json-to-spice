@@ -361,16 +361,31 @@ export function circuitJsonToSpice(
             const sourceNode =
               nodeMap.get(sourcePort?.source_port_id ?? "") || "0"
 
-            const modelName = "SWMOD"
+            const channel_type = component.channel_type
+
+            let positiveControl = gateNode
+            let negativeControl = sourceNode
+            if (channel_type === "p") {
+              positiveControl = sourceNode
+              negativeControl = gateNode
+            }
+
+            const modelName = "ENH_SW"
+            if (!netlist.models.has(modelName)) {
+              netlist.models.set(
+                modelName,
+                `.MODEL ${modelName} SW(Ron=0.1 Roff=1e9 Vt=2.5 Vh=0.1)`,
+              )
+            }
+
             const switchCmd = new VoltageControlledSwitchCommand({
               name: component.name,
               positiveNode: drainNode,
               negativeNode: sourceNode,
-              positiveControl: gateNode,
-              negativeControl: sourceNode,
+              positiveControl,
+              negativeControl,
               model: modelName,
             })
-            netlist.models.set(modelName, `.MODEL ${modelName} SW`)
 
             spiceComponent = new SpiceComponent(component.name, switchCmd, [
               drainNode,
