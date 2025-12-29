@@ -1,7 +1,7 @@
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import { DiodeCommand } from "lib/spice-commands"
-import type { AnyCircuitElement } from "circuit-json"
+import type { SourcePort, SourceSimpleDiode } from "circuit-json"
 
 export const processSimpleDiode = ({
   netlist,
@@ -10,20 +10,20 @@ export const processSimpleDiode = ({
   nodeMap,
 }: {
   netlist: SpiceNetlist
-  component: AnyCircuitElement
-  componentPorts: AnyCircuitElement[]
+  component: SourceSimpleDiode
+  componentPorts: SourcePort[]
   nodeMap: Map<string, string>
 }): SpiceComponent | null => {
   if ("name" in component) {
     const anodePort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "anode" || p.port_hints?.includes("anode"),
-    ) as any
+    )
     const cathodePort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "cathode" ||
         p.port_hints?.includes("cathode"),
-    ) as any
+    )
     const positiveNode = nodeMap.get(anodePort?.source_port_id ?? "") || "0"
     const negativeNode = nodeMap.get(cathodePort?.source_port_id ?? "") || "0"
 

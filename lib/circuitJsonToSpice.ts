@@ -4,6 +4,10 @@ import type {
   AnyCircuitElement,
   SimulationSwitch,
   SimulationVoltageProbe,
+  SourceSimpleDiode,
+  SourceSimpleMosfet,
+  SourceSimpleSwitch,
+  SourceSimpleTransistor,
 } from "circuit-json"
 import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
 import { su } from "@tscircuit/circuit-json-util"
@@ -208,7 +212,7 @@ export function circuitJsonToSpice(
         case "simple_switch": {
           spiceComponent = processSimpleSwitch({
             netlist,
-            component,
+            component: component as SourceSimpleSwitch,
             nodes,
             simulationSwitchMap,
           })
@@ -221,7 +225,7 @@ export function circuitJsonToSpice(
         case "simple_diode": {
           spiceComponent = processSimpleDiode({
             netlist,
-            component,
+            component: component as SourceSimpleDiode,
             componentPorts,
             nodeMap,
           })
@@ -234,7 +238,7 @@ export function circuitJsonToSpice(
         case "simple_mosfet": {
           spiceComponent = processSimpleMosfet({
             netlist,
-            component,
+            component: component as SourceSimpleMosfet,
             componentPorts,
             nodeMap,
           })
@@ -243,7 +247,7 @@ export function circuitJsonToSpice(
         case "simple_transistor": {
           spiceComponent = processSimpleTransistor({
             netlist,
-            component,
+            component: component as SourceSimpleTransistor,
             componentPorts,
             nodeMap,
           })
@@ -269,13 +273,17 @@ export function circuitJsonToSpice(
     nodeMap,
   )
 
-  processSimulationExperiment(
-    netlist,
-    circuitJson.find((elm) => elm.type === "simulation_experiment"),
-    simulationProbes,
-    sourceTraces,
-    nodeMap,
+  const simulationExperiment = circuitJson.find(
+    (elm) => elm.type === "simulation_experiment",
   )
+  if (simulationExperiment)
+    processSimulationExperiment(
+      netlist,
+      simulationExperiment,
+      simulationProbes,
+      sourceTraces,
+      nodeMap,
+    )
 
   return netlist
 }

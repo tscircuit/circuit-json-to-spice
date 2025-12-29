@@ -1,7 +1,7 @@
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import { MOSFETCommand } from "lib/spice-commands"
-import type { AnyCircuitElement } from "circuit-json"
+import type { SourcePort, SourceSimpleMosfet } from "circuit-json"
 
 export const processSimpleMosfet = ({
   netlist,
@@ -10,23 +10,22 @@ export const processSimpleMosfet = ({
   nodeMap,
 }: {
   netlist: SpiceNetlist
-  component: AnyCircuitElement
-  componentPorts: AnyCircuitElement[]
+  component: SourceSimpleMosfet
+  componentPorts: SourcePort[]
   nodeMap: Map<string, string>
 }): SpiceComponent | null => {
   if ("name" in component) {
     const drainPort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "drain" || p.port_hints?.includes("drain"),
-    ) as any
+    )
     const gatePort = componentPorts.find(
-      (p: any) =>
-        p.name?.toLowerCase() === "gate" || p.port_hints?.includes("gate"),
-    ) as any
+      (p) => p.name?.toLowerCase() === "gate" || p.port_hints?.includes("gate"),
+    )
     const sourcePort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "source" || p.port_hints?.includes("source"),
-    ) as any
+    )
 
     const drainNode = nodeMap.get(drainPort?.source_port_id ?? "") || "0"
     const gateNode = nodeMap.get(gatePort?.source_port_id ?? "") || "0"
@@ -35,8 +34,8 @@ export const processSimpleMosfet = ({
     // For 3-pin MOSFETs, substrate is typically connected to source
     const substrateNode = sourceNode
 
-    const channel_type = (component as any).channel_type ?? "n"
-    const mosfet_mode = (component as any).mosfet_mode ?? "enhancement"
+    const channel_type = component.channel_type ?? "n"
+    const mosfet_mode = component.mosfet_mode ?? "enhancement"
 
     const modelType = `${channel_type.toUpperCase()}MOS`
     const modelName = `${modelType}_${mosfet_mode.toUpperCase()}`

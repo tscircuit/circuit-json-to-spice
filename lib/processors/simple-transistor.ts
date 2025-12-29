@@ -1,7 +1,7 @@
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import { BJTCommand } from "lib/spice-commands"
-import type { AnyCircuitElement } from "circuit-json"
+import type { SourcePort, SourceSimpleTransistor } from "circuit-json"
 
 export const processSimpleTransistor = ({
   netlist,
@@ -10,29 +10,28 @@ export const processSimpleTransistor = ({
   nodeMap,
 }: {
   netlist: SpiceNetlist
-  component: AnyCircuitElement
-  componentPorts: AnyCircuitElement[]
+  component: SourceSimpleTransistor
+  componentPorts: SourcePort[]
   nodeMap: Map<string, string>
 }): SpiceComponent | null => {
   if ("name" in component) {
     const collectorPort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "collector" ||
         p.port_hints?.includes("collector"),
-    ) as any
+    )
     const basePort = componentPorts.find(
-      (p: any) =>
-        p.name?.toLowerCase() === "base" || p.port_hints?.includes("base"),
-    ) as any
+      (p) => p.name?.toLowerCase() === "base" || p.port_hints?.includes("base"),
+    )
     const emitterPort = componentPorts.find(
-      (p: any) =>
+      (p) =>
         p.name?.toLowerCase() === "emitter" ||
         p.port_hints?.includes("emitter"),
-    ) as any
+    )
 
     if (!collectorPort || !basePort || !emitterPort) {
       throw new Error(
-        `Transistor ${(component as any).name} is missing required ports (collector, base, emitter)`,
+        `Transistor ${component.name} is missing required ports (collector, base, emitter)`,
       )
     }
 
@@ -40,7 +39,7 @@ export const processSimpleTransistor = ({
     const baseNode = nodeMap.get(basePort.source_port_id) || "0"
     const emitterNode = nodeMap.get(emitterPort.source_port_id) || "0"
 
-    const transistor_type = (component as any).transistor_type ?? "npn"
+    const transistor_type = component.transistor_type ?? "npn"
     const modelName = transistor_type.toUpperCase()
     if (!netlist.models.has(modelName)) {
       netlist.models.set(

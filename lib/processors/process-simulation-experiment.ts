@@ -1,5 +1,5 @@
 import type {
-  AnyCircuitElement,
+  SimulationExperiment,
   SimulationVoltageProbe,
   SourceTrace,
 } from "circuit-json"
@@ -8,7 +8,7 @@ import { formatNumberForSpice } from "./helpers"
 
 export const processSimulationExperiment = (
   netlist: SpiceNetlist,
-  simExperiment: AnyCircuitElement | undefined,
+  simExperiment: SimulationExperiment,
   simulationProbes: SimulationVoltageProbe[],
   sourceTraces: SourceTrace[],
   nodeMap: Map<string, string>,
@@ -64,15 +64,15 @@ export const processSimulationExperiment = (
 
     if (
       nodesToProbe.size > 0 &&
-      (simExperiment as any).experiment_type?.includes("transient")
+      simExperiment.experiment_type?.includes("transient")
     ) {
       netlist.printStatements.push(`.PRINT TRAN ${[...nodesToProbe].join(" ")}`)
     }
   }
 
-  const timePerStep = (simExperiment as any).time_per_step
-  const endTime = (simExperiment as any).end_time_ms
-  const startTimeMs = (simExperiment as any).start_time_ms
+  const timePerStep = simExperiment.time_per_step
+  const endTime = simExperiment.end_time_ms
+  const startTimeMs = simExperiment.start_time_ms
 
   if (timePerStep && endTime) {
     // circuit-json values are in ms, SPICE requires seconds
