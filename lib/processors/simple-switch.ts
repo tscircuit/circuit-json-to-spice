@@ -4,7 +4,7 @@ import {
   VoltageControlledSwitchCommand,
   VoltageSourceCommand,
 } from "lib/spice-commands"
-import type { AnyCircuitElement, SimulationSwitch } from "circuit-json"
+import type { SimulationSwitch, SourceSimpleSwitch } from "circuit-json"
 import {
   buildSimulationSwitchControlValue,
   sanitizeIdentifier,
@@ -17,12 +17,12 @@ export const processSimpleSwitch = ({
   simulationSwitchMap,
 }: {
   netlist: SpiceNetlist
-  component: AnyCircuitElement
+  component: SourceSimpleSwitch
   nodes: string[]
   simulationSwitchMap: Map<string, SimulationSwitch>
 }): SpiceComponent | null => {
   const sanitizedBase = sanitizeIdentifier(
-    (component as any).name ?? (component as any).source_component_id,
+    component.name ?? component.source_component_id,
     "SW",
   )
   const positiveNode = nodes[0] || "0"
@@ -31,7 +31,7 @@ export const processSimpleSwitch = ({
   const modelName = `SW_${sanitizedBase}`
 
   const associatedSimulationSwitch = simulationSwitchMap.get(
-    (component as any).source_component_id,
+    component.source_component_id,
   )
 
   const controlValue = buildSimulationSwitchControlValue(
