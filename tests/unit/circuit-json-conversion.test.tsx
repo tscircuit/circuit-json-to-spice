@@ -54,6 +54,66 @@ test("circuit with simulation voltage source", async () => {
   `)
 })
 
+test("simple led emits diode element and LED model", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "LED1",
+      name: "LED1",
+      ftype: "simple_led",
+      color: "red",
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_vcc",
+      name: "VCC",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_gnd",
+      name: "GND",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "LED1_anode",
+      source_component_id: "LED1",
+      name: "anode",
+      pin_number: 1,
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "LED1_cathode",
+      source_component_id: "LED1",
+      name: "cathode",
+      pin_number: 2,
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_vcc",
+      connected_source_port_ids: ["LED1_anode"],
+      connected_source_net_ids: ["net_vcc"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_gnd",
+      connected_source_port_ids: ["LED1_cathode"],
+      connected_source_net_ids: ["net_gnd"],
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+
+  expect(netlist.components).toHaveLength(1)
+  expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    .MODEL LED D(IS=1e-20 N=2 RS=10 CJO=2p EG=2.1 BV=5 IBV=10u)
+    DLED1 N1 0 LED
+    .END"
+  `)
+})
+
 test("simple switch uses simulation switch control", () => {
   const circuitJson: AnyCircuitElement[] = [
     {

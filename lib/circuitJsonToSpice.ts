@@ -6,6 +6,7 @@ import type {
   SimulationSwitch,
   SimulationVoltageProbe,
   SourceSimpleDiode,
+  SourceSimpleLed,
   SourceSimpleMosfet,
   SourceSimpleSwitch,
   SourceSimpleTransistor,
@@ -15,7 +16,7 @@ import { su } from "@tscircuit/circuit-json-util"
 import { processSimpleResistor } from "./processors/simple-resistor"
 import { processSimpleSwitch } from "./processors/simple-switch"
 import { processSimpleCapacitor } from "./processors/simple-capacitor"
-import { processSimpleDiode } from "./processors/simple-diode"
+import { processSimpleDiode, processSimpleLed } from "./processors/simple-diode"
 import { processSimpleInductor } from "./processors/simple-inductor"
 import { processSimpleMosfet } from "./processors/simple-mosfet"
 import { processSimpleTransistor } from "./processors/simple-transistor"
@@ -231,6 +232,15 @@ export function circuitJsonToSpice(
           spiceComponent = processSimpleDiode({
             netlist,
             component: component as SourceSimpleDiode,
+            componentPorts,
+            nodeMap,
+          })
+          break
+        }
+        case "simple_led": {
+          spiceComponent = processSimpleLed({
+            netlist,
+            component: component as SourceSimpleLed,
             componentPorts,
             nodeMap,
           })
