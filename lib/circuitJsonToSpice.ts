@@ -3,6 +3,7 @@ import { SpiceComponent } from "./spice-classes/SpiceComponent"
 import type {
   AnyCircuitElement,
   SimulationOpAmp,
+  SimulationSpiceSubcircuit,
   SimulationSwitch,
   SimulationVoltageProbe,
   SourceSimpleDiode,
@@ -24,6 +25,7 @@ import { processSimulationVoltageSources } from "./processors/process-simulation
 import { processSimulationCurrentSources } from "./processors/process-simulation-current-sources"
 import { processSimulationExperiment } from "./processors/process-simulation-experiment"
 import { processSimulationOpAmps } from "./processors/process-simulation-op-amp"
+import { processSimulationSpiceSubcircuits } from "./processors/process-simulation-spice-subcircuits"
 
 export function circuitJsonToSpice(
   circuitJson: AnyCircuitElement[],
@@ -43,6 +45,9 @@ export function circuitJsonToSpice(
   const simulationOpAmps = circuitJson.filter(
     (elm) => elm.type === "simulation_op_amp",
   ) as SimulationOpAmp[]
+  const simulationSpiceSubcircuits = circuitJson.filter(
+    (elm) => elm.type === "simulation_spice_subcircuit",
+  ) as SimulationSpiceSubcircuit[]
   const simulationSwitchMap = new Map<string, SimulationSwitch>()
 
   for (const simSwitch of simulationSwitches) {
@@ -289,6 +294,12 @@ export function circuitJsonToSpice(
   )
 
   processSimulationOpAmps(netlist, simulationOpAmps, nodeMap)
+
+  processSimulationSpiceSubcircuits(
+    netlist,
+    simulationSpiceSubcircuits,
+    nodeMap,
+  )
 
   const simulationExperiment = circuitJson.find(
     (elm) => elm.type === "simulation_experiment",
