@@ -213,3 +213,90 @@ test("simple switch uses simulation switch control", () => {
     .END"
   `)
 })
+
+test("simulation spice subcircuit emits model and call in subckt pin order", () => {
+  const rectifierDiodeModel = `
+.subckt RECTIFIER_DIODE ANODE CATHODE
+D1 ANODE CATHODE DGEN
+.model DGEN D
+.ends RECTIFIER_DIODE
+`.trim()
+
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_diode",
+      name: "D_CUSTOM",
+      ftype: "simple_chip",
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "source_port_anode",
+      source_component_id: "source_component_diode",
+      name: "ANODE",
+      pin_number: 1,
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "source_port_cathode",
+      source_component_id: "source_component_diode",
+      name: "CATHODE",
+      pin_number: 2,
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_vp_in",
+      name: "VP_IN",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_vp_out",
+      name: "VP_OUT",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_anode",
+      connected_source_port_ids: ["source_port_anode"],
+      connected_source_net_ids: ["net_vp_in"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_cathode",
+      connected_source_port_ids: ["source_port_cathode"],
+      connected_source_net_ids: ["net_vp_out"],
+    } as AnyCircuitElement,
+    {
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe_vp_in",
+      signal_input_source_net_id: "net_vp_in",
+      name: "VP_IN",
+    } as AnyCircuitElement,
+    {
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe_vp_out",
+      signal_input_source_net_id: "net_vp_out",
+      name: "VP_OUT",
+    } as AnyCircuitElement,
+    {
+      type: "simulation_spice_subcircuit",
+      simulation_spice_subcircuit_id: "simulation_spice_subcircuit_0",
+      source_component_id: "source_component_diode",
+      spice_pin_to_source_port_map: {
+        CATHODE: "source_port_cathode",
+        ANODE: "source_port_anode",
+      },
+      subcircuit_source: rectifierDiodeModel,
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  expect(spiceString).toContain(".subckt RECTIFIER_DIODE ANODE CATHODE")
+  expect(spiceString).toContain(".ends RECTIFIER_DIODE")
+  expect(spiceString).toContain(
+    "Xsimulation_spice_subcircuit_0 VP_IN VP_OUT RECTIFIER_DIODE",
+  )
+})
