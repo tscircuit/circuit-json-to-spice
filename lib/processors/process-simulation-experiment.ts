@@ -66,7 +66,9 @@ export const processSimulationExperiment = (
       nodesToProbe.size > 0 &&
       simExperiment.experiment_type?.includes("transient")
     ) {
-      netlist.printStatements.push(`.PRINT TRAN ${[...nodesToProbe].join(" ")}`)
+      const probeVectors = [...nodesToProbe].join(" ")
+      netlist.printStatements.push(`.PRINT TRAN ${probeVectors}`)
+      netlist.saveStatements.push(`.SAVE ${probeVectors}`)
     }
   }
 
