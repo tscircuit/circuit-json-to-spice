@@ -22,6 +22,7 @@ test(
       Vsimulation_voltage_source_0 VP_IN 0 DC 5
       Vsimulation_voltage_source_1 N1 0 PULSE(0 10 0 1n 1n 0.0005 0.001)
       .PRINT TRAN V(VP_IN) V(VP_OUT)
+      .SAVE V(VP_IN) V(VP_OUT)
       .tran 0.00001 0.05 UIC
       .END"
     `)

@@ -25,6 +25,10 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
     lines.push(...netlist.printStatements)
   }
 
+  if (netlist.saveStatements.length > 0) {
+    lines.push(...netlist.saveStatements)
+  }
+
   // Add control block if present
   if (netlist.controls.length > 0) {
     lines.push(".control")

@@ -21,6 +21,7 @@ test(
       RR_collector N1 VP_COLLECTOR 300
       Vsimulation_voltage_source_0 N1 0 DC 5
       .PRINT TRAN V(VP_BASE) V(VP_COLLECTOR)
+      .SAVE V(VP_BASE) V(VP_COLLECTOR)
       .tran 0.00005 0.004 UIC
       .END"
     `)
