@@ -24,7 +24,7 @@ test(
       RR1 N3 0 1K
       MM1 N2 N4 0 0 NMOS_ENHANCEMENT
       Vsimulation_voltage_source_0 N1 0 DC 5
-      Vsimulation_voltage_source_1 N4 0 PULSE(0 10 0 1n 1n 0.00068 0.001)
+      Vsimulation_voltage_source_1 N4 0 PULSE(0 10 0 1n 1n 680u 1m)
       .END"
     `)
 

@@ -54,6 +54,131 @@ test("circuit with simulation voltage source", async () => {
   `)
 })
 
+test("square simulation voltage source uses explicit pulse timing controls", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_net",
+      source_net_id: "net_en",
+      name: "EN",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_gnd",
+      name: "GND",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "V_EN_pos",
+      name: "pos",
+      source_component_id: "V_EN",
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "V_EN_neg",
+      name: "neg",
+      source_component_id: "V_EN",
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_en",
+      connected_source_port_ids: ["V_EN_pos"],
+      connected_source_net_ids: ["net_en"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_gnd",
+      connected_source_port_ids: ["V_EN_neg"],
+      connected_source_net_ids: ["net_gnd"],
+    } as AnyCircuitElement,
+    {
+      type: "simulation_voltage_source",
+      simulation_voltage_source_id: "simulation_voltage_source_en",
+      is_dc_source: false,
+      terminal1_source_port_id: "V_EN_pos",
+      terminal2_source_port_id: "V_EN_neg",
+      voltage: 4.2,
+      wave_shape: "square",
+      pulse_delay: 0.001,
+      rise_time: 0.000001,
+      fall_time: 0.000001,
+      pulse_width: 2,
+      period: 4,
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+
+  expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    Vsimulation_voltage_source_en N1 0 PULSE(0 4.2 1u 1n 1n 2m 4m)
+    .END"
+  `)
+})
+
+test("square simulation voltage source preserves explicit zero pulse timing controls", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_net",
+      source_net_id: "net_en",
+      name: "EN",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_net",
+      source_net_id: "net_gnd",
+      name: "GND",
+      member_source_group_ids: [],
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "V_EN_pos",
+      name: "pos",
+      source_component_id: "V_EN",
+    } as AnyCircuitElement,
+    {
+      type: "source_port",
+      source_port_id: "V_EN_neg",
+      name: "neg",
+      source_component_id: "V_EN",
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_en",
+      connected_source_port_ids: ["V_EN_pos"],
+      connected_source_net_ids: ["net_en"],
+    } as AnyCircuitElement,
+    {
+      type: "source_trace",
+      source_trace_id: "trace_gnd",
+      connected_source_port_ids: ["V_EN_neg"],
+      connected_source_net_ids: ["net_gnd"],
+    } as AnyCircuitElement,
+    {
+      type: "simulation_voltage_source",
+      simulation_voltage_source_id: "simulation_voltage_source_en",
+      is_dc_source: false,
+      terminal1_source_port_id: "V_EN_pos",
+      terminal2_source_port_id: "V_EN_neg",
+      voltage: 4.2,
+      wave_shape: "square",
+      frequency: 1000,
+      pulse_delay: 0,
+      rise_time: 0,
+      fall_time: 0,
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+
+  expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    Vsimulation_voltage_source_en N1 0 PULSE(0 4.2 0 0 0 500u 1m)
+    .END"
+  `)
+})
+
 test("simple led emits diode element and LED model", () => {
   const circuitJson: AnyCircuitElement[] = [
     {

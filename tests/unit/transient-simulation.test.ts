@@ -150,3 +150,36 @@ test("circuit with simulation experiment and 0 start time adds .tran command", (
     .END"
   `)
 })
+
+test("circuit with simulation experiment adds spice options before transient command", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "simulation_experiment",
+      simulation_experiment_id: "se1",
+      name: "TPS63802 Figure 10-17 transient",
+      experiment_type: "spice_transient_analysis",
+      time_per_step: 0.000005,
+      start_time_ms: 0.69758,
+      end_time_ms: 0.71556,
+      spice_options: {
+        method: "gear",
+        reltol: 0.01,
+        abstol: "1n",
+        vntol: "1u",
+      },
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  expect(spiceString).toContain(
+    ".options method=gear reltol=0.01 abstol=1n vntol=1u\n.tran 5e-9 0.00071556 0.00069758 UIC",
+  )
+  expect(spiceString).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    .options method=gear reltol=0.01 abstol=1n vntol=1u
+    .tran 5e-9 0.00071556 0.00069758 UIC
+    .END"
+  `)
+})

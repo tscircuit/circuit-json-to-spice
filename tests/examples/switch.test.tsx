@@ -20,6 +20,8 @@ test(
       QQ1 VP_COLLECTOR N2 0 NPN
       RR_collector N1 VP_COLLECTOR 300
       Vsimulation_voltage_source_0 N1 0 DC 5
+      * tscircuit_probe {"simulation_voltage_probe_id":"simulation_voltage_probe_0","name":"VP_BASE","spice_vector":"V(VP_BASE)","source_node_name":"VP_BASE"}
+      * tscircuit_probe {"simulation_voltage_probe_id":"simulation_voltage_probe_1","name":"VP_COLLECTOR","spice_vector":"V(VP_COLLECTOR)","source_node_name":"VP_COLLECTOR"}
       .PRINT TRAN V(VP_BASE) V(VP_COLLECTOR)
       .SAVE V(VP_BASE) V(VP_COLLECTOR)
       .tran 0.00005 0.004 UIC

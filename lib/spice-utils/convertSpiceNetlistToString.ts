@@ -16,6 +16,14 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
     lines.push(component.toSpiceString())
   }
 
+  if (netlist.optionStatements.length > 0) {
+    lines.push(...netlist.optionStatements)
+  }
+
+  if (netlist.metadataComments.length > 0) {
+    lines.push(...netlist.metadataComments)
+  }
+
   // Add subcircuit definitions
   for (const subcircuit of netlist.subcircuits) {
     lines.push(subcircuit.toSpiceString())
