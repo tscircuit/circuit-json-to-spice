@@ -9,6 +9,8 @@ export class SpiceNetlist {
   controls: string[]
   subcircuits: SpiceSubcircuit[]
   models: Map<string, string>
+  optionStatements: string[]
+  metadataComments: string[]
   tranCommand: string | null
   printStatements: string[]
   saveStatements: string[]
@@ -20,6 +22,8 @@ export class SpiceNetlist {
     this.controls = []
     this.subcircuits = []
     this.models = new Map()
+    this.optionStatements = []
+    this.metadataComments = []
     this.tranCommand = null
     this.printStatements = []
     this.saveStatements = []

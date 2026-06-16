@@ -6,6 +6,16 @@ import type {
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { formatNumberForSpice } from "./helpers"
 
+const spiceOptionOrder = ["method", "reltol", "abstol", "vntol"] as const
+
+interface ProbeVectorMapping {
+  simulation_voltage_probe_id: string
+  name?: string
+  spice_vector: string
+  source_node_name: string
+  reference_node_name?: string
+}
+
 export const processSimulationExperiment = (
   netlist: SpiceNetlist,
   simExperiment: SimulationExperiment,
@@ -15,9 +25,24 @@ export const processSimulationExperiment = (
 ) => {
   if (!simExperiment) return
 
+  const spiceOptions = simExperiment.spice_options
+  if (spiceOptions) {
+    const optionParts = spiceOptionOrder
+      .map((key) => {
+        const value = spiceOptions[key]
+        return value === undefined ? null : `${key}=${value}`
+      })
+      .filter((part): part is string => part !== null)
+
+    if (optionParts.length > 0) {
+      netlist.optionStatements.push(`.options ${optionParts.join(" ")}`)
+    }
+  }
+
   // Process simulation voltage probes
   if (simulationProbes.length > 0) {
     const nodesToProbe = new Set<string>()
+    const probeVectorMappings: ProbeVectorMapping[] = []
 
     const getPortIdFromNetId = (netId: string) => {
       const trace = sourceTraces.find((t) =>
@@ -50,14 +75,37 @@ export const processSimulationExperiment = (
       if (referencePortId) {
         const referenceNodeName = nodeMap.get(referencePortId)
         if (referenceNodeName && referenceNodeName !== "0") {
-          nodesToProbe.add(`V(${signalNodeName},${referenceNodeName})`)
+          const spiceVector = `V(${signalNodeName},${referenceNodeName})`
+          nodesToProbe.add(spiceVector)
+          probeVectorMappings.push({
+            simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
+            name: probe.name,
+            spice_vector: spiceVector,
+            source_node_name: signalNodeName,
+            reference_node_name: referenceNodeName,
+          })
         } else if (signalNodeName !== "0") {
-          nodesToProbe.add(`V(${signalNodeName})`)
+          const spiceVector = `V(${signalNodeName})`
+          nodesToProbe.add(spiceVector)
+          probeVectorMappings.push({
+            simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
+            name: probe.name,
+            spice_vector: spiceVector,
+            source_node_name: signalNodeName,
+            reference_node_name: referenceNodeName,
+          })
         }
       } else {
         // Single-ended probe
         if (signalNodeName !== "0") {
-          nodesToProbe.add(`V(${signalNodeName})`)
+          const spiceVector = `V(${signalNodeName})`
+          nodesToProbe.add(spiceVector)
+          probeVectorMappings.push({
+            simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
+            name: probe.name,
+            spice_vector: spiceVector,
+            source_node_name: signalNodeName,
+          })
         }
       }
     }
@@ -66,6 +114,11 @@ export const processSimulationExperiment = (
       nodesToProbe.size > 0 &&
       simExperiment.experiment_type?.includes("transient")
     ) {
+      for (const mapping of probeVectorMappings) {
+        netlist.metadataComments.push(
+          `* tscircuit_probe ${JSON.stringify(mapping)}`,
+        )
+      }
       const probeVectors = [...nodesToProbe].join(" ")
       netlist.printStatements.push(`.PRINT TRAN ${probeVectors}`)
       netlist.saveStatements.push(`.SAVE ${probeVectors}`)

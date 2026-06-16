@@ -2,6 +2,7 @@ import type { AnyCircuitElement, SimulationVoltageSource } from "circuit-json"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { VoltageSourceCommand } from "lib/spice-commands"
+import { formatSecondsForSpice } from "./helpers"
 
 export const processSimulationVoltageSources = (
   netlist: SpiceNetlist,
@@ -43,13 +44,30 @@ export const processSimulationVoltageSources = (
           const v_pulsed = simSource.voltage ?? 0
           const freq = simSource.frequency ?? 0
           const period_from_freq = freq === 0 ? Infinity : 1 / freq
-          const period = period_from_freq
+          const hasExplicitPeriod = simSource.period !== undefined
+          const hasExplicitPulseWidth = simSource.pulse_width !== undefined
+          const period = hasExplicitPeriod
+            ? simSource.period! / 1000
+            : period_from_freq
           const duty_cycle = simSource.duty_cycle ?? 0.5
           const pulse_width = period * duty_cycle
-          const delay = 0
-          const rise_time = "1n"
-          const fall_time = "1n"
-          value = `PULSE(${v_initial} ${v_pulsed} ${delay} ${rise_time} ${fall_time} ${pulse_width} ${period})`
+          const delay =
+            simSource.pulse_delay !== undefined
+              ? simSource.pulse_delay / 1000
+              : 0
+          const rise_time =
+            simSource.rise_time !== undefined
+              ? formatSecondsForSpice(simSource.rise_time / 1000)
+              : "1n"
+          const fall_time =
+            simSource.fall_time !== undefined
+              ? formatSecondsForSpice(simSource.fall_time / 1000)
+              : "1n"
+          const pulseWidthText = hasExplicitPulseWidth
+            ? formatSecondsForSpice(simSource.pulse_width! / 1000)
+            : formatSecondsForSpice(pulse_width)
+          const periodText = formatSecondsForSpice(period)
+          value = `PULSE(${v_initial} ${v_pulsed} ${formatSecondsForSpice(delay)} ${rise_time} ${fall_time} ${pulseWidthText} ${periodText})`
         } else if (simSource.voltage !== undefined) {
           value = `DC ${simSource.voltage}`
         }

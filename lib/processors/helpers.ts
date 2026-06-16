@@ -92,3 +92,31 @@ export function formatNumberForSpice(value: number) {
 
   return Number(value.toPrecision(6)).toString()
 }
+
+export function formatSecondsForSpice(value: number) {
+  if (!Number.isFinite(value)) return `${value}`
+  if (value === 0) return "0"
+
+  const units = [
+    ["T", 1e12],
+    ["G", 1e9],
+    ["MEG", 1e6],
+    ["k", 1e3],
+    ["m", 1e-3],
+    ["u", 1e-6],
+    ["n", 1e-9],
+    ["p", 1e-12],
+  ] as const
+
+  for (const [suffix, multiplier] of units) {
+    const scaled = value / multiplier
+    if (Math.abs(scaled) >= 0.999999 && Math.abs(scaled) < 999.999999) {
+      const rounded = Number(scaled.toPrecision(6))
+      if (Math.abs(rounded * multiplier - value) <= Math.abs(value) * 1e-9) {
+        return `${rounded}${suffix}`
+      }
+    }
+  }
+
+  return formatNumberForSpice(value)
+}

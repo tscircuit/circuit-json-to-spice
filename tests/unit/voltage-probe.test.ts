@@ -84,6 +84,9 @@ test("voltage probe with signal_input_source_port_id creates .PRINT statement", 
 
   expect(spiceString).toContain(`.PRINT TRAN V(VOUT)`)
   expect(spiceString).toContain(`.SAVE V(VOUT)`)
+  expect(spiceString).toContain(
+    `* tscircuit_probe {"simulation_voltage_probe_id":"probe1","name":"VOUT","spice_vector":"V(VOUT)","source_node_name":"VOUT"}`,
+  )
   expect(spiceString).toContain(`RR1 N1 VOUT 1K`)
   expect(spiceString).toContain(`RR2 VOUT N2 1K`)
 })
@@ -407,6 +410,9 @@ test("differential voltage probe creates .PRINT statement", () => {
 
   expect(spiceString).toContain("RR1 N2 N1 1K")
   expect(spiceString).toContain("RR2 N1 N3 1K")
+  expect(spiceString).toContain(
+    `* tscircuit_probe {"simulation_voltage_probe_id":"probe_diff","name":"VR1","spice_vector":"V(N2,N1)","source_node_name":"N2","reference_node_name":"N1"}`,
+  )
   expect(spiceString).toContain(".PRINT TRAN V(N2,N1)")
   expect(spiceString).toContain(".SAVE V(N2,N1)")
 })
