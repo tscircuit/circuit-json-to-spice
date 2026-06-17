@@ -161,8 +161,9 @@ export const processSimulationExperiment = (
     }
   }
 
-  // Process simulation current probes
-  if (simulationCurrentProbes.length > 0 && isTransientExperiment) {
+  // Current probes are inline ammeter elements, so the 0V sense source is part
+  // of the simulated topology even when the experiment does not print current.
+  if (simulationCurrentProbes.length > 0) {
     const senseVoltageSourceNames = new Set<string>()
     const currentProbeVectorMappings: CurrentProbeVectorMapping[] = []
 
@@ -206,7 +207,9 @@ export const processSimulationExperiment = (
         ]),
       )
 
-      transientProbeVectors.add(spiceVector)
+      if (isTransientExperiment) {
+        transientProbeVectors.add(spiceVector)
+      }
       currentProbeVectorMappings.push({
         simulation_current_probe_id: probe.simulation_current_probe_id,
         name: probe.name,

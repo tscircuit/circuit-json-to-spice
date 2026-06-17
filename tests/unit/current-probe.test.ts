@@ -31,6 +31,8 @@ const baseCircuit: AnyCircuitElement[] = [
     source_component_id: "AM1",
     name: "AM1",
   } as unknown as AnyCircuitElement,
+  // Test-only inline ammeter placeholder; the simulation_current_probe record
+  // below supplies the generated 0V SPICE sense source for this branch.
   {
     type: "source_port",
     source_port_id: "AM1_p1",
@@ -100,7 +102,7 @@ const baseCircuit: AnyCircuitElement[] = [
   },
 ]
 
-test("port-based current probe creates a series 0V sense source and current output", () => {
+test("port-based inline current probe creates a series 0V sense source and current output", () => {
   const circuitJson: AnyCircuitElement[] = [
     ...baseCircuit,
     currentProbe({
@@ -161,7 +163,7 @@ test("net-based current probe resolves source net ids to node names", () => {
   )
 })
 
-test("current probe output is transient-only", () => {
+test("inline current probe sense source remains in non-transient netlists without transient output", () => {
   const circuitJson: AnyCircuitElement[] = [
     ...baseCircuit.filter(
       (element) => element.type !== "simulation_experiment",
@@ -183,10 +185,9 @@ test("current probe output is transient-only", () => {
   const netlist = circuitJsonToSpice(circuitJson)
   const spiceString = netlist.toSpiceString()
 
-  expect(spiceString).not.toContain("Vsense_cp_dc")
-  expect(spiceString).not.toContain(".PRINT")
+  expect(spiceString).toContain("Vsense_cp_dc N1 N2 DC 0")
+  expect(spiceString).not.toContain(".PRINT TRAN")
   expect(spiceString).not.toContain(".SAVE")
-  expect(spiceString).not.toContain("I(Vsense_cp_dc)")
 })
 
 test("multiple current probes share one .PRINT and one .SAVE current output", () => {
