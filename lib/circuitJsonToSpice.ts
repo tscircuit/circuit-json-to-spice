@@ -2,6 +2,7 @@ import { SpiceNetlist } from "./spice-classes/SpiceNetlist"
 import { SpiceComponent } from "./spice-classes/SpiceComponent"
 import type {
   AnyCircuitElement,
+  SimulationCurrentProbe,
   SimulationOpAmp,
   SimulationSpiceSubcircuit,
   SimulationSwitch,
@@ -37,6 +38,9 @@ export function circuitJsonToSpice(
   const simulationProbes = circuitJson.filter(
     (elm) => elm.type === "simulation_voltage_probe",
   ) as SimulationVoltageProbe[]
+  const simulationCurrentProbes = circuitJson.filter(
+    (elm) => elm.type === "simulation_current_probe",
+  ) as SimulationCurrentProbe[]
   const simulationSwitches = circuitJson
     .filter(
       (element) => (element as { type?: string }).type === "simulation_switch",
@@ -309,6 +313,7 @@ export function circuitJsonToSpice(
       netlist,
       simulationExperiment,
       simulationProbes,
+      simulationCurrentProbes,
       sourceTraces,
       nodeMap,
     )
