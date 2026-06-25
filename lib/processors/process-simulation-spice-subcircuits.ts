@@ -6,10 +6,20 @@ import { SubcircuitCallCommand } from "lib/spice-commands"
 export function parseSpiceSubckt(
   source: string,
 ): { modelName: string; pinNames: string[] } | null {
-  const line = source
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find((line) => /^\.subckt\s+/i.test(line))
+  const logicalLines: string[] = []
+
+  for (const physicalLine of source.split(/\r?\n/)) {
+    const trimmedLine = physicalLine.trim()
+
+    if (/^\+/.test(trimmedLine) && logicalLines.length > 0) {
+      logicalLines[logicalLines.length - 1] += ` ${trimmedLine.slice(1).trim()}`
+      continue
+    }
+
+    logicalLines.push(trimmedLine)
+  }
+
+  const line = logicalLines.find((line) => /^\.subckt\s+/i.test(line))
 
   if (!line) return null
 
