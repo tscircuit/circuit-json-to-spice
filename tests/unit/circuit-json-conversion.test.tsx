@@ -425,3 +425,85 @@ D1 ANODE CATHODE DGEN
     "Xsimulation_spice_subcircuit_0 VP_IN VP_OUT RECTIFIER_DIODE",
   )
 })
+
+test("simulation spice subcircuit emits call pins from continued subckt header", () => {
+  const drv8876LikeModel = `
+.SUBCKT DRV8876_TRANS CPH CPL EN_IN1 GND IMODE IPROPI nFAULT nSLEEP OUT1 OUT2 PGND PAD
++  PH_IN2 PMODE VCP VM VREF
+R1 VM GND 1Meg
+.ENDS DRV8876_TRANS
+`.trim()
+
+  const pinNames = [
+    "CPH",
+    "CPL",
+    "EN_IN1",
+    "GND",
+    "IMODE",
+    "IPROPI",
+    "nFAULT",
+    "nSLEEP",
+    "OUT1",
+    "OUT2",
+    "PGND",
+    "PAD",
+    "PH_IN2",
+    "PMODE",
+    "VCP",
+    "VM",
+    "VREF",
+  ]
+
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_drv8876",
+      name: "U1",
+      ftype: "simple_chip",
+    } as AnyCircuitElement,
+    ...pinNames.map(
+      (pinName, index) =>
+        ({
+          type: "source_port",
+          source_port_id: `source_port_${pinName}`,
+          source_component_id: "source_component_drv8876",
+          name: pinName,
+          pin_number: index + 1,
+        }) as AnyCircuitElement,
+    ),
+    ...pinNames.map(
+      (pinName) =>
+        ({
+          type: "source_net",
+          source_net_id: `net_${pinName}`,
+          name: `N_${pinName}`,
+          member_source_group_ids: [],
+        }) as AnyCircuitElement,
+    ),
+    ...pinNames.map(
+      (pinName) =>
+        ({
+          type: "source_trace",
+          source_trace_id: `trace_${pinName}`,
+          connected_source_port_ids: [`source_port_${pinName}`],
+          connected_source_net_ids: [`net_${pinName}`],
+        }) as AnyCircuitElement,
+    ),
+    {
+      type: "simulation_spice_subcircuit",
+      simulation_spice_subcircuit_id: "simulation_spice_subcircuit_0",
+      source_component_id: "source_component_drv8876",
+      spice_pin_to_source_port_map: Object.fromEntries(
+        pinNames.map((pinName) => [pinName, `source_port_${pinName}`]),
+      ),
+      subcircuit_source: drv8876LikeModel,
+    } as AnyCircuitElement,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  expect(spiceString).toContain(
+    "Xsimulation_spice_subcircuit_0 N1 N2 N3 0 N4 N5 N6 N7 N8 N9 0 N10 N11 N12 N13 N14 N15 DRV8876_TRANS",
+  )
+})
