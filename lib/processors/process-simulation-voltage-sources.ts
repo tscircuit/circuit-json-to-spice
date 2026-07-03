@@ -90,8 +90,14 @@ export const processSimulationVoltageSources = (
       }
     } else {
       // DC Source (is_dc_source is true or undefined)
-      const positivePortId = simSource.positive_source_port_id
-      const negativePortId = simSource.negative_source_port_id
+      // Fall back to terminal1/terminal2 (the AC path already uses these) so a
+      // DC source that only has terminal port ids isn't silently dropped.
+      const positivePortId =
+        simSource.positive_source_port_id ??
+        (simSource as any).terminal1_source_port_id
+      const negativePortId =
+        simSource.negative_source_port_id ??
+        (simSource as any).terminal2_source_port_id
 
       if (
         positivePortId &&
