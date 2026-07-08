@@ -49,12 +49,8 @@ const circuitWithOneBadValue: AnyCircuitElement[] = [
   },
 ] as unknown as AnyCircuitElement[]
 
-// Failing on main: circuitJsonToSpice throws, so no netlist is produced at all.
-test.failing(
-  "a component with an invalid value does not discard the rest of the netlist",
-  () => {
-    const spice = circuitJsonToSpice(circuitWithOneBadValue).toSpiceString()
-    // The valid resistor must survive even though R2's value is invalid.
-    expect(spice).toContain("RR1")
-  },
-)
+test("a component with an invalid value does not discard the rest of the netlist", () => {
+  const spice = circuitJsonToSpice(circuitWithOneBadValue).toSpiceString()
+  // The valid resistor must survive even though R2's value is invalid.
+  expect(spice).toContain("RR1")
+})
