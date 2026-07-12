@@ -13,14 +13,14 @@ if (!WebAssembly.instantiateStreaming) {
   }
 }
 
-test("simulate simple resistor divider", async () => {
+test("simulate resistor divider containing a zero-ohm resistor", async () => {
   const circuitJson: AnyCircuitElement[] = [
     {
       type: "source_component",
       source_component_id: "R1",
       name: "R1",
       ftype: "simple_resistor",
-      resistance: 1000,
+      resistance: 0,
     } as any,
     {
       type: "source_component",
@@ -72,6 +72,7 @@ test("simulate simple resistor divider", async () => {
   lines.push(".op")
   lines.push(".END")
   const spice = lines.join("\n")
+  expect(spice).toContain("1e-12")
 
   const sim = new Simulation()
   await sim.start()
