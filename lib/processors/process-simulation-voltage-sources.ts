@@ -29,7 +29,8 @@ export const processSimulationVoltageSources = (
         const wave_shape = simSource.wave_shape
         if (wave_shape === "sinewave") {
           const v_offset = 0 // not provided in circuitJson
-          const v_peak = simSource.voltage ?? 0
+          const v_peak =
+            simSource.voltage ?? (simSource.peak_to_peak_voltage ?? 0) / 2
           const freq = simSource.frequency ?? 0
           const delay = 0 // not provided in circuitJson
           const damping_factor = 0 // not provided in circuitJson
@@ -41,7 +42,8 @@ export const processSimulationVoltageSources = (
           }
         } else if (wave_shape === "square") {
           const v_initial = 0
-          const v_pulsed = simSource.voltage ?? 0
+          const v_pulsed =
+            simSource.voltage ?? simSource.peak_to_peak_voltage ?? 0
           const freq = simSource.frequency ?? 0
           const period_from_freq = freq === 0 ? Infinity : 1 / freq
           const hasExplicitPeriod = simSource.period !== undefined
