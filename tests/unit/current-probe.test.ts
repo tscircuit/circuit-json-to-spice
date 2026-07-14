@@ -163,7 +163,7 @@ test("net-based current probe resolves source net ids to node names", () => {
   )
 })
 
-test("inline current probe sense source remains in non-transient netlists without transient output", () => {
+test("inline current probe is emitted as operating-point output", () => {
   const circuitJson: AnyCircuitElement[] = [
     ...baseCircuit.filter(
       (element) => element.type !== "simulation_experiment",
@@ -177,6 +177,7 @@ test("inline current probe sense source remains in non-transient netlists withou
     currentProbe({
       type: "simulation_current_probe",
       simulation_current_probe_id: "cp_dc",
+      source_component_id: "AM1",
       positive_source_port_id: "AM1_p1",
       negative_source_port_id: "AM1_p2",
     }),
@@ -187,7 +188,10 @@ test("inline current probe sense source remains in non-transient netlists withou
 
   expect(spiceString).toContain("Vsense_cp_dc N1 N2 DC 0")
   expect(spiceString).not.toContain(".PRINT TRAN")
-  expect(spiceString).not.toContain(".SAVE")
+  expect(spiceString).toContain(".PRINT OP I(Vsense_cp_dc)")
+  expect(spiceString).toContain(".SAVE I(Vsense_cp_dc)")
+  expect(spiceString).toContain(".op")
+  expect(spiceString).toContain('"source_component_id":"AM1"')
 })
 
 test("multiple current probes share one .PRINT and one .SAVE current output", () => {

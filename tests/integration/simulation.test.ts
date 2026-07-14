@@ -82,6 +82,99 @@ test("simulate resistor divider containing a zero-ohm resistor", async () => {
   expect(result.variableNames).toContain("v(n1)")
 })
 
+test("simulate a generated operating-point netlist", async () => {
+  const circuitJson = [
+    {
+      type: "source_component",
+      source_component_id: "R1",
+      name: "R1",
+      ftype: "simple_resistor",
+      resistance: 1000,
+    },
+    {
+      type: "source_port",
+      source_port_id: "R1_p1",
+      source_component_id: "R1",
+      name: "p1",
+      pin_number: 1,
+    },
+    {
+      type: "source_port",
+      source_port_id: "R1_p2",
+      source_component_id: "R1",
+      name: "p2",
+      pin_number: 2,
+    },
+    {
+      type: "source_port",
+      source_port_id: "V1_pos",
+      source_component_id: "V1",
+      name: "pos",
+    },
+    {
+      type: "source_port",
+      source_port_id: "V1_neg",
+      source_component_id: "V1",
+      name: "neg",
+    },
+    {
+      type: "source_net",
+      source_net_id: "vin",
+      name: "VIN",
+      member_source_group_ids: [],
+    },
+    {
+      type: "source_net",
+      source_net_id: "gnd",
+      name: "GND",
+      member_source_group_ids: [],
+    },
+    {
+      type: "source_trace",
+      source_trace_id: "trace_vin",
+      connected_source_port_ids: ["V1_pos", "R1_p1"],
+      connected_source_net_ids: ["vin"],
+    },
+    {
+      type: "source_trace",
+      source_trace_id: "trace_gnd",
+      connected_source_port_ids: ["V1_neg", "R1_p2"],
+      connected_source_net_ids: ["gnd"],
+    },
+    {
+      type: "simulation_voltage_source",
+      simulation_voltage_source_id: "source1",
+      positive_source_port_id: "V1_pos",
+      negative_source_port_id: "V1_neg",
+      voltage: 5,
+    },
+    {
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe1",
+      signal_input_source_port_id: "R1_p1",
+      name: "VIN",
+    },
+    {
+      type: "simulation_experiment",
+      simulation_experiment_id: "op1",
+      name: "Bias point",
+      experiment_type: "spice_dc_operating_point",
+    },
+  ] as AnyCircuitElement[]
+
+  const spice = circuitJsonToSpice(circuitJson).toSpiceString()
+  expect(spice).toContain(".PRINT OP V(VIN)")
+  expect(spice).toContain(".op")
+
+  const sim = new Simulation()
+  await sim.start()
+  sim.setNetList(spice)
+  const result = await sim.runSim()
+  const vin = result.data.find((entry) => entry.name.toLowerCase() === "v(vin)")
+
+  expect(vin?.values[0]).toBeCloseTo(5)
+})
+
 const roundNumber = (value: number, decimals: number) => {
   const factor = 10 ** decimals
   return Math.round(value * factor) / factor

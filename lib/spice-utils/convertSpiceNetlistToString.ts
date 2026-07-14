@@ -51,6 +51,13 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
     lines.push(netlist.tranCommand)
   }
 
+  if (
+    netlist.operatingPointCommand &&
+    !lines.some((l) => l.trim().toLowerCase().startsWith(".op"))
+  ) {
+    lines.push(netlist.operatingPointCommand)
+  }
+
   // End with .END
   lines.push(".END")
 

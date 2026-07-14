@@ -27,6 +27,7 @@ import { processSimulationCurrentSources } from "./processors/process-simulation
 import { processSimulationExperiment } from "./processors/process-simulation-experiment"
 import { processSimulationOpAmps } from "./processors/process-simulation-op-amp"
 import { processSimulationSpiceSubcircuits } from "./processors/process-simulation-spice-subcircuits"
+import { CircuitJsonToSpiceError } from "./errors"
 
 export function circuitJsonToSpice(
   circuitJson: AnyCircuitElement[],
@@ -52,6 +53,9 @@ export function circuitJsonToSpice(
   const simulationSpiceSubcircuits = circuitJson.filter(
     (elm) => elm.type === "simulation_spice_subcircuit",
   ) as SimulationSpiceSubcircuit[]
+  const modeledSourceComponentIds = new Set(
+    simulationSpiceSubcircuits.map((model) => model.source_component_id),
+  )
   const simulationSwitchMap = new Map<string, SimulationSwitch>()
 
   for (const simSwitch of simulationSwitches) {
@@ -220,6 +224,22 @@ export function circuitJsonToSpice(
       let spiceComponent: SpiceComponent | null = null
 
       switch ((component as { ftype: string }).ftype) {
+        case "simple_chip": {
+          const boundarySetting = (
+            component as { is_simulation_boundary?: boolean }
+          ).is_simulation_boundary
+          if (
+            boundarySetting === false &&
+            !modeledSourceComponentIds.has(component.source_component_id)
+          ) {
+            throw new CircuitJsonToSpiceError(
+              "missing_model",
+              `Missing SPICE model for ${component.name ?? component.source_component_id}`,
+              "Add a spiceModel to the chip or set simulationBoundary to stop the analog simulation at this component.",
+            )
+          }
+          break
+        }
         case "simple_resistor": {
           spiceComponent = processSimpleResistor({ component, nodes })
           break
