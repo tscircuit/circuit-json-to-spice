@@ -12,6 +12,7 @@ export class SpiceNetlist {
   optionStatements: string[]
   metadataComments: string[]
   tranCommand: string | null
+  operatingPointCommand: string | null
   printStatements: string[]
   saveStatements: string[]
 
@@ -25,6 +26,7 @@ export class SpiceNetlist {
     this.optionStatements = []
     this.metadataComments = []
     this.tranCommand = null
+    this.operatingPointCommand = null
     this.printStatements = []
     this.saveStatements = []
   }

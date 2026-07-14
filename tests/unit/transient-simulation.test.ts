@@ -83,7 +83,7 @@ test("does not add .tran if a component already provides one", () => {
   `)
 })
 
-test("circuit with incomplete simulation experiment does not add .tran command", () => {
+test("circuit with incomplete transient experiment reports an invalid netlist", () => {
   const circuitJson: AnyCircuitElement[] = [
     {
       type: "simulation_experiment",
@@ -96,14 +96,9 @@ test("circuit with incomplete simulation experiment does not add .tran command",
     } as AnyCircuitElement,
   ]
 
-  const netlist = circuitJsonToSpice(circuitJson)
-  const spiceString = netlist.toSpiceString()
-
-  expect(spiceString).not.toContain(".tran")
-  expect(spiceString).toMatchInlineSnapshot(`
-    "* Circuit JSON to SPICE Netlist
-    .END"
-  `)
+  expect(() => circuitJsonToSpice(circuitJson)).toThrow(
+    "Transient analysis requires both time_per_step and end_time_ms",
+  )
 })
 
 test("circuit with simulation experiment and 0 start time adds .tran command", () => {

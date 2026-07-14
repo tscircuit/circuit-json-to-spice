@@ -7,6 +7,7 @@ import type {
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { VoltageSourceCommand } from "lib/spice-commands"
+import { CircuitJsonToSpiceError } from "lib/errors"
 import { formatNumberForSpice, sanitizeIdentifier } from "./helpers"
 
 const spiceOptionOrder = ["method", "reltol", "abstol", "vntol"] as const
@@ -26,6 +27,7 @@ interface CurrentProbeVectorMapping {
   sense_voltage_source_name: string
   positive_node_name: string
   negative_node_name: string
+  source_component_id?: string
 }
 
 const getPortIdFromNetId = (sourceTraces: SourceTrace[], netId: string) => {
@@ -75,8 +77,18 @@ export const processSimulationExperiment = (
   if (!simExperiment) return
 
   const isTransientExperiment =
-    simExperiment.experiment_type?.includes("transient") ?? false
-  const transientProbeVectors = new Set<string>()
+    simExperiment.experiment_type === "spice_transient_analysis"
+  const isOperatingPointExperiment =
+    simExperiment.experiment_type === "spice_dc_operating_point"
+
+  if (!isTransientExperiment && !isOperatingPointExperiment) {
+    throw new CircuitJsonToSpiceError(
+      "unsupported_analysis",
+      `Unsupported simulation analysis: ${simExperiment.experiment_type}`,
+    )
+  }
+
+  const probeVectors = new Set<string>()
 
   const spiceOptions = simExperiment.spice_options
   if (spiceOptions) {
@@ -118,7 +130,7 @@ export const processSimulationExperiment = (
         })
         if (referenceNodeName && referenceNodeName !== "0") {
           const spiceVector = `V(${signalNodeName},${referenceNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -128,7 +140,7 @@ export const processSimulationExperiment = (
           })
         } else if (signalNodeName !== "0") {
           const spiceVector = `V(${signalNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -141,7 +153,7 @@ export const processSimulationExperiment = (
         // Single-ended probe
         if (signalNodeName !== "0") {
           const spiceVector = `V(${signalNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -152,7 +164,7 @@ export const processSimulationExperiment = (
       }
     }
 
-    if (probeVectorMappings.length > 0 && isTransientExperiment) {
+    if (probeVectorMappings.length > 0) {
       for (const mapping of probeVectorMappings) {
         netlist.metadataComments.push(
           `* tscircuit_probe ${JSON.stringify(mapping)}`,
@@ -207,9 +219,7 @@ export const processSimulationExperiment = (
         ]),
       )
 
-      if (isTransientExperiment) {
-        transientProbeVectors.add(spiceVector)
-      }
+      probeVectors.add(spiceVector)
       currentProbeVectorMappings.push({
         simulation_current_probe_id: probe.simulation_current_probe_id,
         name: probe.name,
@@ -217,6 +227,7 @@ export const processSimulationExperiment = (
         sense_voltage_source_name: spiceSenseVoltageSourceName,
         positive_node_name: positiveNodeName,
         negative_node_name: negativeNodeName,
+        source_component_id: probe.source_component_id,
       })
     }
 
@@ -229,17 +240,31 @@ export const processSimulationExperiment = (
     }
   }
 
-  if (transientProbeVectors.size > 0 && isTransientExperiment) {
-    const probeVectors = [...transientProbeVectors].join(" ")
-    netlist.printStatements.push(`.PRINT TRAN ${probeVectors}`)
-    netlist.saveStatements.push(`.SAVE ${probeVectors}`)
+  if (probeVectors.size > 0) {
+    const vectors = [...probeVectors].join(" ")
+    netlist.printStatements.push(
+      `.PRINT ${isTransientExperiment ? "TRAN" : "OP"} ${vectors}`,
+    )
+    netlist.saveStatements.push(`.SAVE ${vectors}`)
+  }
+
+  if (isOperatingPointExperiment) {
+    netlist.operatingPointCommand = ".op"
+    return
   }
 
   const timePerStep = simExperiment.time_per_step
   const endTime = simExperiment.end_time_ms
   const startTimeMs = simExperiment.start_time_ms
 
-  if (timePerStep && endTime) {
+  if (!timePerStep || !endTime) {
+    throw new CircuitJsonToSpiceError(
+      "invalid_netlist",
+      "Transient analysis requires both time_per_step and end_time_ms",
+    )
+  }
+
+  {
     // circuit-json values are in ms, SPICE requires seconds
     const startTime = (startTimeMs ?? 0) / 1000
 

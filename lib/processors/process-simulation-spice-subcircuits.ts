@@ -2,6 +2,7 @@ import type { SimulationSpiceSubcircuit } from "circuit-json"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SubcircuitCallCommand } from "lib/spice-commands"
+import { CircuitJsonToSpiceError } from "lib/errors"
 
 export function parseSpiceSubckt(
   source: string,
@@ -43,7 +44,13 @@ export function processSimulationSpiceSubcircuits(
       simulationSpiceSubcircuit.subcircuit_source,
     )
 
-    if (!parsedSubckt) continue
+    if (!parsedSubckt) {
+      throw new CircuitJsonToSpiceError(
+        "invalid_netlist",
+        `Invalid SPICE subcircuit for ${simulationSpiceSubcircuit.source_component_id}`,
+        "Expected a .SUBCKT declaration with at least one pin",
+      )
+    }
 
     const { modelName, pinNames } = parsedSubckt
 
