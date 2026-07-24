@@ -44,11 +44,17 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
     lines.push(".endc")
   }
 
-  if (
-    netlist.tranCommand &&
-    !lines.some((l) => l.trim().toLowerCase().startsWith(".tran"))
-  ) {
-    lines.push(netlist.tranCommand)
+  if (netlist.analysisCommand) {
+    const analysisDirective = netlist.analysisCommand
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)[0]
+    const alreadyIncludesAnalysis = lines.some(
+      (line) => line.trim().toLowerCase().split(/\s+/)[0] === analysisDirective,
+    )
+    if (!alreadyIncludesAnalysis) {
+      lines.push(netlist.analysisCommand)
+    }
   }
 
   // End with .END

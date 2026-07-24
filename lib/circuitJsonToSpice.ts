@@ -27,6 +27,11 @@ import { processSimulationCurrentSources } from "./processors/process-simulation
 import { processSimulationExperiment } from "./processors/process-simulation-experiment"
 import { processSimulationOpAmps } from "./processors/process-simulation-op-amp"
 import { processSimulationSpiceSubcircuits } from "./processors/process-simulation-spice-subcircuits"
+import type {
+  ConnectivityNetId,
+  SourcePortOrNetIdToSpiceNodeNameMap,
+  SpiceNodeName,
+} from "./spice-node-map"
 
 export function circuitJsonToSpice(
   circuitJson: AnyCircuitElement[],
@@ -63,8 +68,8 @@ export function circuitJsonToSpice(
   const connMap = getSourcePortConnectivityMapFromCircuitJson(circuitJson)
 
   // Create node mapping from port connections
-  const nodeMap = new Map<string, string>()
-  const netToNodeName = new Map<string, string>()
+  const nodeMap: SourcePortOrNetIdToSpiceNodeNameMap = new Map()
+  const netToNodeName = new Map<ConnectivityNetId, SpiceNodeName>()
   let nodeCounter = 1
 
   const probeNames = new Set<string>()
@@ -190,6 +195,18 @@ export function circuitJsonToSpice(
     }
   }
 
+  // Simulation sources may reference a source net directly. Mirror connected
+  // source-net ids into the node map so source processors resolve both forms.
+  for (const trace of sourceTraces) {
+    const connectedNodeName = trace.connected_source_port_ids
+      .map((sourcePortId) => nodeMap.get(sourcePortId))
+      .find((nodeName) => nodeName !== undefined)
+    if (!connectedNodeName) continue
+    for (const sourceNetId of trace.connected_source_net_ids) {
+      nodeMap.set(sourceNetId, connectedNodeName)
+    }
+  }
+
   // Second pass: assign node numbers to unconnected ports
   for (const port of sourcePorts) {
     const portId = port.source_port_id
@@ -285,17 +302,17 @@ export function circuitJsonToSpice(
     }
   }
 
-  processSimulationVoltageSources(
+  processSimulationVoltageSources({
     netlist,
-    su(circuitJson).simulation_voltage_source.list(),
+    simulationVoltageSources: su(circuitJson).simulation_voltage_source.list(),
     nodeMap,
-  )
+  })
 
-  processSimulationCurrentSources(
+  processSimulationCurrentSources({
     netlist,
-    su(circuitJson).simulation_current_source.list(),
+    simulationCurrentSources: su(circuitJson).simulation_current_source.list(),
     nodeMap,
-  )
+  })
 
   processSimulationOpAmps(netlist, simulationOpAmps, nodeMap)
 
@@ -309,14 +326,14 @@ export function circuitJsonToSpice(
     (elm) => elm.type === "simulation_experiment",
   )
   if (simulationExperiment)
-    processSimulationExperiment(
+    processSimulationExperiment({
       netlist,
       simulationExperiment,
-      simulationProbes,
+      simulationVoltageProbes: simulationProbes,
       simulationCurrentProbes,
       sourceTraces,
       nodeMap,
-    )
+    })
 
   return netlist
 }
