@@ -1,63 +1,84 @@
-import type { AnyCircuitElement } from "circuit-json"
+import type { SimulationCurrentSource } from "circuit-json"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { CurrentSourceCommand } from "lib/spice-commands"
+import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
+import { formatNumberForSpice } from "./helpers"
 
-export const processSimulationCurrentSources = (
-  netlist: SpiceNetlist,
-  simulationCurrentSources: AnyCircuitElement[],
-  nodeMap: Map<string, string>,
-) => {
-  for (const simSource of simulationCurrentSources) {
-    if (simSource.type !== "simulation_current_source") continue
+export const processSimulationCurrentSources = ({
+  netlist,
+  simulationCurrentSources,
+  nodeMap,
+}: {
+  netlist: SpiceNetlist
+  simulationCurrentSources: SimulationCurrentSource[]
+  nodeMap: SourcePortOrNetIdToSpiceNodeNameMap
+}) => {
+  for (const simulationCurrentSource of simulationCurrentSources) {
+    if (simulationCurrentSource.type !== "simulation_current_source") continue
 
-    if (simSource.is_dc_source === false) {
+    if (simulationCurrentSource.is_dc_source === false) {
       // AC/PULSE Source
-      const positivePortId = simSource.terminal1_source_port_id
-      const negativePortId = simSource.terminal2_source_port_id
+      const positiveSourceId =
+        simulationCurrentSource.terminal1_source_port_id ??
+        simulationCurrentSource.terminal1_source_net_id
+      const negativeSourceId =
+        simulationCurrentSource.terminal2_source_port_id ??
+        simulationCurrentSource.terminal2_source_net_id
 
-      if (positivePortId && negativePortId) {
-        const positiveNode = nodeMap.get(positivePortId) || "0"
-        const negativeNode = nodeMap.get(negativePortId) || "0"
+      if (positiveSourceId && negativeSourceId) {
+        const positiveNode = nodeMap.get(positiveSourceId) || "0"
+        const negativeNode = nodeMap.get(negativeSourceId) || "0"
 
-        let value = ""
-        const wave_shape = simSource.wave_shape
-        if (wave_shape === "sinewave") {
-          const i_offset = 0 // not provided
-          const i_peak = (simSource.peak_to_peak_current ?? 0) / 2
-          const freq = simSource.frequency ?? 0
-          const delay = 0
-          const damping_factor = 0
-          const phase = simSource.phase ?? 0
-          if (freq > 0) {
-            value = `SIN(${i_offset} ${i_peak} ${freq} ${delay} ${damping_factor} ${phase})`
+        let sourceExpression = ""
+        if (simulationCurrentSource.wave_shape === "sinewave") {
+          const currentOffset = 0
+          const peakCurrent =
+            (simulationCurrentSource.peak_to_peak_current ?? 0) / 2
+          const frequencyHz = simulationCurrentSource.frequency ?? 0
+          const delaySeconds = 0
+          const dampingFactor = 0
+          const phaseDegrees = simulationCurrentSource.phase ?? 0
+          if (frequencyHz > 0) {
+            sourceExpression = `SIN(${currentOffset} ${peakCurrent} ${frequencyHz} ${delaySeconds} ${dampingFactor} ${phaseDegrees})`
           } else {
-            value = `DC ${i_peak}`
+            sourceExpression = `DC ${peakCurrent}`
           }
-        } else if (wave_shape === "square") {
-          const i_initial = 0
-          const i_pulsed = simSource.peak_to_peak_current ?? 0
-          const freq = simSource.frequency ?? 0
-          const period_from_freq = freq === 0 ? Infinity : 1 / freq
-          const period = period_from_freq
-          const duty_cycle = simSource.duty_cycle ?? 0.5
-          const pulse_width = period * duty_cycle
-          const delay = 0
-          const rise_time = "1n"
-          const fall_time = "1n"
-          value = `PULSE(${i_initial} ${i_pulsed} ${delay} ${rise_time} ${fall_time} ${pulse_width} ${period})`
+        } else if (simulationCurrentSource.wave_shape === "square") {
+          const initialCurrent = 0
+          const pulsedCurrent =
+            simulationCurrentSource.peak_to_peak_current ?? 0
+          const frequencyHz = simulationCurrentSource.frequency ?? 0
+          const periodSeconds = frequencyHz === 0 ? Infinity : 1 / frequencyHz
+          const dutyCycle = simulationCurrentSource.duty_cycle ?? 0.5
+          const pulseWidthSeconds = periodSeconds * dutyCycle
+          const delaySeconds = 0
+          const riseTime = "1n"
+          const fallTime = "1n"
+          sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
         }
 
-        if (value) {
+        if (
+          sourceExpression ||
+          simulationCurrentSource.ac_magnitude !== undefined
+        ) {
           const currentSourceCmd = new CurrentSourceCommand({
-            name: simSource.simulation_current_source_id,
+            name: simulationCurrentSource.simulation_current_source_id,
             positiveNode,
             negativeNode,
-            value,
+            value: sourceExpression,
+            acMagnitude:
+              simulationCurrentSource.ac_magnitude === undefined
+                ? undefined
+                : formatNumberForSpice(simulationCurrentSource.ac_magnitude),
+            acPhase:
+              simulationCurrentSource.ac_phase === undefined
+                ? undefined
+                : formatNumberForSpice(simulationCurrentSource.ac_phase),
           })
 
           const spiceComponent = new SpiceComponent(
-            simSource.simulation_current_source_id,
+            simulationCurrentSource.simulation_current_source_id,
             currentSourceCmd,
             [positiveNode, negativeNode],
           )
@@ -66,27 +87,46 @@ export const processSimulationCurrentSources = (
       }
     } else {
       // DC Source
-      const positivePortId = simSource.positive_source_port_id
-      const negativePortId = simSource.negative_source_port_id
+      const legacyPositiveSourceId =
+        "terminal1_source_port_id" in simulationCurrentSource &&
+        typeof simulationCurrentSource.terminal1_source_port_id === "string"
+          ? simulationCurrentSource.terminal1_source_port_id
+          : undefined
+      const legacyNegativeSourceId =
+        "terminal2_source_port_id" in simulationCurrentSource &&
+        typeof simulationCurrentSource.terminal2_source_port_id === "string"
+          ? simulationCurrentSource.terminal2_source_port_id
+          : undefined
+      const positiveSourceId =
+        simulationCurrentSource.positive_source_port_id ??
+        simulationCurrentSource.positive_source_net_id ??
+        legacyPositiveSourceId
+      const negativeSourceId =
+        simulationCurrentSource.negative_source_port_id ??
+        simulationCurrentSource.negative_source_net_id ??
+        legacyNegativeSourceId
 
-      if (
-        positivePortId &&
-        negativePortId &&
-        "current" in simSource &&
-        simSource.current !== undefined
-      ) {
-        const positiveNode = nodeMap.get(positivePortId) || "0"
-        const negativeNode = nodeMap.get(negativePortId) || "0"
+      if (positiveSourceId && negativeSourceId) {
+        const positiveNode = nodeMap.get(positiveSourceId) || "0"
+        const negativeNode = nodeMap.get(negativeSourceId) || "0"
 
         const currentSourceCmd = new CurrentSourceCommand({
-          name: simSource.simulation_current_source_id,
+          name: simulationCurrentSource.simulation_current_source_id,
           positiveNode,
           negativeNode,
-          value: `DC ${simSource.current}`,
+          value: `DC ${simulationCurrentSource.current}`,
+          acMagnitude:
+            simulationCurrentSource.ac_magnitude === undefined
+              ? undefined
+              : formatNumberForSpice(simulationCurrentSource.ac_magnitude),
+          acPhase:
+            simulationCurrentSource.ac_phase === undefined
+              ? undefined
+              : formatNumberForSpice(simulationCurrentSource.ac_phase),
         })
 
         const spiceComponent = new SpiceComponent(
-          simSource.simulation_current_source_id,
+          simulationCurrentSource.simulation_current_source_id,
           currentSourceCmd,
           [positiveNode, negativeNode],
         )

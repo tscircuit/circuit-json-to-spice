@@ -1,89 +1,109 @@
-import type { AnyCircuitElement, SimulationVoltageSource } from "circuit-json"
+import type { SimulationVoltageSource } from "circuit-json"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { VoltageSourceCommand } from "lib/spice-commands"
-import { formatSecondsForSpice } from "./helpers"
+import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
+import { formatNumberForSpice, formatSecondsForSpice } from "./helpers"
 
-export const processSimulationVoltageSources = (
-  netlist: SpiceNetlist,
-  simulationVoltageSources: SimulationVoltageSource[],
-  nodeMap: Map<string, string>,
-) => {
-  for (const simSource of simulationVoltageSources) {
-    if (simSource.type !== "simulation_voltage_source") continue
+export const processSimulationVoltageSources = ({
+  netlist,
+  simulationVoltageSources,
+  nodeMap,
+}: {
+  netlist: SpiceNetlist
+  simulationVoltageSources: SimulationVoltageSource[]
+  nodeMap: SourcePortOrNetIdToSpiceNodeNameMap
+}) => {
+  for (const simulationVoltageSource of simulationVoltageSources) {
+    if (simulationVoltageSource.type !== "simulation_voltage_source") continue
 
-    if (simSource.is_dc_source === false) {
+    if (simulationVoltageSource.is_dc_source === false) {
       // AC Source
-      if (
-        "terminal1_source_port_id" in simSource &&
-        "terminal2_source_port_id" in simSource &&
-        simSource.terminal1_source_port_id &&
-        simSource.terminal2_source_port_id
-      ) {
-        const positiveNode =
-          nodeMap.get(simSource.terminal1_source_port_id) || "0"
-        const negativeNode =
-          nodeMap.get(simSource.terminal2_source_port_id) || "0"
+      const positiveSourceId =
+        simulationVoltageSource.terminal1_source_port_id ??
+        simulationVoltageSource.terminal1_source_net_id
+      const negativeSourceId =
+        simulationVoltageSource.terminal2_source_port_id ??
+        simulationVoltageSource.terminal2_source_net_id
+      if (positiveSourceId && negativeSourceId) {
+        const positiveNode = nodeMap.get(positiveSourceId) || "0"
+        const negativeNode = nodeMap.get(negativeSourceId) || "0"
 
-        let value = ""
-        const wave_shape = simSource.wave_shape
-        if (wave_shape === "sinewave") {
-          const v_offset = 0 // not provided in circuitJson
-          const v_peak =
-            simSource.voltage ?? (simSource.peak_to_peak_voltage ?? 0) / 2
-          const freq = simSource.frequency ?? 0
-          const delay = 0 // not provided in circuitJson
-          const damping_factor = 0 // not provided in circuitJson
-          const phase = simSource.phase ?? 0
-          if (freq > 0) {
-            value = `SIN(${v_offset} ${v_peak} ${freq} ${delay} ${damping_factor} ${phase})`
+        let sourceExpression = ""
+        if (simulationVoltageSource.wave_shape === "sinewave") {
+          const voltageOffset = 0
+          const peakVoltage =
+            simulationVoltageSource.voltage ??
+            (simulationVoltageSource.peak_to_peak_voltage ?? 0) / 2
+          const frequencyHz = simulationVoltageSource.frequency ?? 0
+          const delaySeconds = 0
+          const dampingFactor = 0
+          const phaseDegrees = simulationVoltageSource.phase ?? 0
+          if (frequencyHz > 0) {
+            sourceExpression = `SIN(${voltageOffset} ${peakVoltage} ${frequencyHz} ${delaySeconds} ${dampingFactor} ${phaseDegrees})`
           } else {
-            value = `DC ${simSource.voltage ?? 0}`
+            sourceExpression = `DC ${simulationVoltageSource.voltage ?? 0}`
           }
-        } else if (wave_shape === "square") {
-          const v_initial = 0
-          const v_pulsed =
-            simSource.voltage ?? simSource.peak_to_peak_voltage ?? 0
-          const freq = simSource.frequency ?? 0
-          const period_from_freq = freq === 0 ? Infinity : 1 / freq
-          const hasExplicitPeriod = simSource.period !== undefined
-          const hasExplicitPulseWidth = simSource.pulse_width !== undefined
-          const period = hasExplicitPeriod
-            ? simSource.period! / 1000
-            : period_from_freq
-          const duty_cycle = simSource.duty_cycle ?? 0.5
-          const pulse_width = period * duty_cycle
-          const delay =
-            simSource.pulse_delay !== undefined
-              ? simSource.pulse_delay / 1000
+        } else if (simulationVoltageSource.wave_shape === "square") {
+          const initialVoltage = 0
+          const pulsedVoltage =
+            simulationVoltageSource.voltage ??
+            simulationVoltageSource.peak_to_peak_voltage ??
+            0
+          const frequencyHz = simulationVoltageSource.frequency ?? 0
+          const periodFromFrequencySeconds =
+            frequencyHz === 0 ? Infinity : 1 / frequencyHz
+          const periodSeconds =
+            simulationVoltageSource.period === undefined
+              ? periodFromFrequencySeconds
+              : simulationVoltageSource.period / 1000
+          const dutyCycle = simulationVoltageSource.duty_cycle ?? 0.5
+          const pulseWidthSeconds = periodSeconds * dutyCycle
+          const delaySeconds =
+            simulationVoltageSource.pulse_delay !== undefined
+              ? simulationVoltageSource.pulse_delay / 1000
               : 0
-          const rise_time =
-            simSource.rise_time !== undefined
-              ? formatSecondsForSpice(simSource.rise_time / 1000)
+          const riseTime =
+            simulationVoltageSource.rise_time !== undefined
+              ? formatSecondsForSpice(simulationVoltageSource.rise_time / 1000)
               : "1n"
-          const fall_time =
-            simSource.fall_time !== undefined
-              ? formatSecondsForSpice(simSource.fall_time / 1000)
+          const fallTime =
+            simulationVoltageSource.fall_time !== undefined
+              ? formatSecondsForSpice(simulationVoltageSource.fall_time / 1000)
               : "1n"
-          const pulseWidthText = hasExplicitPulseWidth
-            ? formatSecondsForSpice(simSource.pulse_width! / 1000)
-            : formatSecondsForSpice(pulse_width)
-          const periodText = formatSecondsForSpice(period)
-          value = `PULSE(${v_initial} ${v_pulsed} ${formatSecondsForSpice(delay)} ${rise_time} ${fall_time} ${pulseWidthText} ${periodText})`
-        } else if (simSource.voltage !== undefined) {
-          value = `DC ${simSource.voltage}`
+          const pulseWidthText =
+            simulationVoltageSource.pulse_width === undefined
+              ? formatSecondsForSpice(pulseWidthSeconds)
+              : formatSecondsForSpice(
+                  simulationVoltageSource.pulse_width / 1000,
+                )
+          const periodText = formatSecondsForSpice(periodSeconds)
+          sourceExpression = `PULSE(${initialVoltage} ${pulsedVoltage} ${formatSecondsForSpice(delaySeconds)} ${riseTime} ${fallTime} ${pulseWidthText} ${periodText})`
+        } else if (simulationVoltageSource.voltage !== undefined) {
+          sourceExpression = `DC ${simulationVoltageSource.voltage}`
         }
 
-        if (value) {
+        if (
+          sourceExpression ||
+          simulationVoltageSource.ac_magnitude !== undefined
+        ) {
           const voltageSourceCmd = new VoltageSourceCommand({
-            name: simSource.simulation_voltage_source_id,
+            name: simulationVoltageSource.simulation_voltage_source_id,
             positiveNode,
             negativeNode,
-            value,
+            value: sourceExpression,
+            acMagnitude:
+              simulationVoltageSource.ac_magnitude === undefined
+                ? undefined
+                : formatNumberForSpice(simulationVoltageSource.ac_magnitude),
+            acPhase:
+              simulationVoltageSource.ac_phase === undefined
+                ? undefined
+                : formatNumberForSpice(simulationVoltageSource.ac_phase),
           })
 
           const spiceComponent = new SpiceComponent(
-            simSource.simulation_voltage_source_id,
+            simulationVoltageSource.simulation_voltage_source_id,
             voltageSourceCmd,
             [positiveNode, negativeNode],
           )
@@ -94,31 +114,46 @@ export const processSimulationVoltageSources = (
       // DC Source (is_dc_source is true or undefined)
       // Fall back to terminal1/terminal2 (the AC path already uses these) so a
       // DC source that only has terminal port ids isn't silently dropped.
-      const positivePortId =
-        simSource.positive_source_port_id ??
-        (simSource as any).terminal1_source_port_id
-      const negativePortId =
-        simSource.negative_source_port_id ??
-        (simSource as any).terminal2_source_port_id
+      const legacyPositiveSourceId =
+        "terminal1_source_port_id" in simulationVoltageSource &&
+        typeof simulationVoltageSource.terminal1_source_port_id === "string"
+          ? simulationVoltageSource.terminal1_source_port_id
+          : undefined
+      const legacyNegativeSourceId =
+        "terminal2_source_port_id" in simulationVoltageSource &&
+        typeof simulationVoltageSource.terminal2_source_port_id === "string"
+          ? simulationVoltageSource.terminal2_source_port_id
+          : undefined
+      const positiveSourceId =
+        simulationVoltageSource.positive_source_port_id ??
+        simulationVoltageSource.positive_source_net_id ??
+        legacyPositiveSourceId
+      const negativeSourceId =
+        simulationVoltageSource.negative_source_port_id ??
+        simulationVoltageSource.negative_source_net_id ??
+        legacyNegativeSourceId
 
-      if (
-        positivePortId &&
-        negativePortId &&
-        "voltage" in simSource &&
-        simSource.voltage !== undefined
-      ) {
-        const positiveNode = nodeMap.get(positivePortId) || "0"
-        const negativeNode = nodeMap.get(negativePortId) || "0"
+      if (positiveSourceId && negativeSourceId) {
+        const positiveNode = nodeMap.get(positiveSourceId) || "0"
+        const negativeNode = nodeMap.get(negativeSourceId) || "0"
 
         const voltageSourceCmd = new VoltageSourceCommand({
-          name: simSource.simulation_voltage_source_id,
+          name: simulationVoltageSource.simulation_voltage_source_id,
           positiveNode,
           negativeNode,
-          value: `DC ${(simSource as any).voltage}`,
+          value: `DC ${simulationVoltageSource.voltage}`,
+          acMagnitude:
+            simulationVoltageSource.ac_magnitude === undefined
+              ? undefined
+              : formatNumberForSpice(simulationVoltageSource.ac_magnitude),
+          acPhase:
+            simulationVoltageSource.ac_phase === undefined
+              ? undefined
+              : formatNumberForSpice(simulationVoltageSource.ac_phase),
         })
 
         const spiceComponent = new SpiceComponent(
-          simSource.simulation_voltage_source_id,
+          simulationVoltageSource.simulation_voltage_source_id,
           voltageSourceCmd,
           [positiveNode, negativeNode],
         )

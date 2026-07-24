@@ -11,7 +11,7 @@ export class SpiceNetlist {
   models: Map<string, string>
   optionStatements: string[]
   metadataComments: string[]
-  tranCommand: string | null
+  analysisCommand: string | null
   printStatements: string[]
   saveStatements: string[]
 
@@ -24,7 +24,7 @@ export class SpiceNetlist {
     this.models = new Map()
     this.optionStatements = []
     this.metadataComments = []
-    this.tranCommand = null
+    this.analysisCommand = null
     this.printStatements = []
     this.saveStatements = []
   }
@@ -40,6 +40,16 @@ export class SpiceNetlist {
   addSubcircuit(subcircuit: SpiceSubcircuit) {
     if (this.subcircuits.find((s) => s.name === subcircuit.name)) return
     this.subcircuits.push(subcircuit)
+  }
+
+  get tranCommand() {
+    return this.analysisCommand?.trim().toLowerCase().startsWith(".tran")
+      ? this.analysisCommand
+      : null
+  }
+
+  set tranCommand(tranCommand: string | null) {
+    this.analysisCommand = tranCommand
   }
 
   toSpiceString() {

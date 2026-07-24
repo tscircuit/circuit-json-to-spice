@@ -7,6 +7,8 @@ import type {
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { VoltageSourceCommand } from "lib/spice-commands"
+import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
+import { Ac, Dc, Op, Options, Print, Save, Tran } from "spicets"
 import { formatNumberForSpice, sanitizeIdentifier } from "./helpers"
 
 const spiceOptionOrder = ["method", "reltol", "abstol", "vntol"] as const
@@ -44,7 +46,7 @@ const resolveNodeNameFromSourcePortOrNet = ({
   sourcePortId?: string
   sourceNetId?: string
   sourceTraces: SourceTrace[]
-  nodeMap: Map<string, string>
+  nodeMap: SourcePortOrNetIdToSpiceNodeNameMap
 }) => {
   if (sourcePortId) {
     return nodeMap.get(sourcePortId)
@@ -64,39 +66,153 @@ const getSenseVoltageSourceName = (probe: SimulationCurrentProbe) =>
     "sense_current_probe",
   )
 
-export const processSimulationExperiment = (
-  netlist: SpiceNetlist,
-  simExperiment: SimulationExperiment,
-  simulationProbes: SimulationVoltageProbe[],
-  simulationCurrentProbes: SimulationCurrentProbe[],
-  sourceTraces: SourceTrace[],
-  nodeMap: Map<string, string>,
+const getSpiceAnalysisName = (
+  experimentType: SimulationExperiment["experiment_type"],
 ) => {
-  if (!simExperiment) return
+  switch (experimentType) {
+    case "spice_transient_analysis":
+      return "TRAN"
+    case "spice_dc_operating_point":
+      return "OP"
+    case "spice_dc_sweep":
+      return "DC"
+    case "spice_ac_analysis":
+      return "AC"
+  }
+}
 
-  const isTransientExperiment =
-    simExperiment.experiment_type?.includes("transient") ?? false
-  const transientProbeVectors = new Set<string>()
+const getSpiceAcSweepType = (
+  acSweepType: NonNullable<SimulationExperiment["ac_sweep_type"]>,
+) => {
+  switch (acSweepType) {
+    case "linear":
+      return "lin"
+    case "decade":
+      return "dec"
+    case "octave":
+      return "oct"
+  }
+}
 
-  const spiceOptions = simExperiment.spice_options
+const buildAnalysisCommand = (simulationExperiment: SimulationExperiment) => {
+  if (simulationExperiment.experiment_type === "spice_transient_analysis") {
+    const timePerStepMs = simulationExperiment.time_per_step
+    const endTimeMs = simulationExperiment.end_time_ms
+    const startTimeMs = simulationExperiment.start_time_ms
+    if (timePerStepMs === undefined || endTimeMs === undefined) return null
+
+    const startTimeSeconds = (startTimeMs ?? 0) / 1000
+    return new Tran({
+      step: formatNumberForSpice(timePerStepMs / 1000),
+      stop: formatNumberForSpice(endTimeMs / 1000),
+      ...(startTimeSeconds > 0
+        ? { start: formatNumberForSpice(startTimeSeconds) }
+        : {}),
+      uic: true,
+    })
+  }
+
+  if (simulationExperiment.experiment_type === "spice_dc_operating_point") {
+    return new Op()
+  }
+
+  if (simulationExperiment.experiment_type === "spice_dc_sweep") {
+    const {
+      dc_sweep_voltage_source_id,
+      dc_sweep_current_source_id,
+      dc_sweep_start,
+      dc_sweep_stop,
+      dc_sweep_step,
+    } = simulationExperiment
+    if (
+      dc_sweep_start === undefined ||
+      dc_sweep_stop === undefined ||
+      dc_sweep_step === undefined
+    ) {
+      return null
+    }
+    let dcSweepSourceName: string
+    if (dc_sweep_voltage_source_id !== undefined) {
+      dcSweepSourceName = `V${dc_sweep_voltage_source_id}`
+    } else if (dc_sweep_current_source_id !== undefined) {
+      dcSweepSourceName = `I${dc_sweep_current_source_id}`
+    } else {
+      return null
+    }
+    return new Dc({
+      source: dcSweepSourceName,
+      start: formatNumberForSpice(dc_sweep_start),
+      stop: formatNumberForSpice(dc_sweep_stop),
+      step: formatNumberForSpice(dc_sweep_step),
+    })
+  }
+
+  const {
+    ac_sweep_type,
+    ac_samples_per_interval,
+    ac_sample_count,
+    ac_start_frequency_hz,
+    ac_stop_frequency_hz,
+  } = simulationExperiment
+  if (
+    ac_sweep_type === undefined ||
+    ac_start_frequency_hz === undefined ||
+    ac_stop_frequency_hz === undefined
+  ) {
+    return null
+  }
+  const sampleSetting =
+    ac_sweep_type === "linear" ? ac_sample_count : ac_samples_per_interval
+  if (sampleSetting === undefined) return null
+  const spiceSweepType = getSpiceAcSweepType(ac_sweep_type)
+  return new Ac({
+    sweep: spiceSweepType,
+    points: sampleSetting,
+    start: formatNumberForSpice(ac_start_frequency_hz),
+    stop: formatNumberForSpice(ac_stop_frequency_hz),
+  })
+}
+
+export const processSimulationExperiment = ({
+  netlist,
+  simulationExperiment,
+  simulationVoltageProbes,
+  simulationCurrentProbes,
+  sourceTraces,
+  nodeMap,
+}: {
+  netlist: SpiceNetlist
+  simulationExperiment: SimulationExperiment
+  simulationVoltageProbes: SimulationVoltageProbe[]
+  simulationCurrentProbes: SimulationCurrentProbe[]
+  sourceTraces: SourceTrace[]
+  nodeMap: SourcePortOrNetIdToSpiceNodeNameMap
+}) => {
+  const spiceAnalysisName = getSpiceAnalysisName(
+    simulationExperiment.experiment_type,
+  )
+  const probeVectors = new Set<string>()
+
+  const spiceOptions = simulationExperiment.spice_options
   if (spiceOptions) {
-    const optionParts = spiceOptionOrder
-      .map((key) => {
-        const value = spiceOptions[key]
-        return value === undefined ? null : `${key}=${value}`
-      })
-      .filter((part): part is string => part !== null)
+    const optionValues: Record<string, string | number> = {}
+    for (const key of spiceOptionOrder) {
+      const spiceOption = spiceOptions[key]
+      if (spiceOption !== undefined) {
+        optionValues[key] = spiceOption
+      }
+    }
 
-    if (optionParts.length > 0) {
-      netlist.optionStatements.push(`.options ${optionParts.join(" ")}`)
+    if (Object.keys(optionValues).length > 0) {
+      netlist.optionStatements.push(new Options(optionValues).getString())
     }
   }
 
   // Process simulation voltage probes
-  if (simulationProbes.length > 0) {
+  if (simulationVoltageProbes.length > 0) {
     const probeVectorMappings: VoltageProbeVectorMapping[] = []
 
-    for (const probe of simulationProbes) {
+    for (const probe of simulationVoltageProbes) {
       const signalNodeName = resolveNodeNameFromSourcePortOrNet({
         sourcePortId: probe.signal_input_source_port_id,
         sourceNetId: probe.signal_input_source_net_id,
@@ -118,7 +234,7 @@ export const processSimulationExperiment = (
         })
         if (referenceNodeName && referenceNodeName !== "0") {
           const spiceVector = `V(${signalNodeName},${referenceNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -128,7 +244,7 @@ export const processSimulationExperiment = (
           })
         } else if (signalNodeName !== "0") {
           const spiceVector = `V(${signalNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -141,7 +257,7 @@ export const processSimulationExperiment = (
         // Single-ended probe
         if (signalNodeName !== "0") {
           const spiceVector = `V(${signalNodeName})`
-          transientProbeVectors.add(spiceVector)
+          probeVectors.add(spiceVector)
           probeVectorMappings.push({
             simulation_voltage_probe_id: probe.simulation_voltage_probe_id,
             name: probe.name,
@@ -152,7 +268,7 @@ export const processSimulationExperiment = (
       }
     }
 
-    if (probeVectorMappings.length > 0 && isTransientExperiment) {
+    if (probeVectorMappings.length > 0) {
       for (const mapping of probeVectorMappings) {
         netlist.metadataComments.push(
           `* tscircuit_probe ${JSON.stringify(mapping)}`,
@@ -207,9 +323,7 @@ export const processSimulationExperiment = (
         ]),
       )
 
-      if (isTransientExperiment) {
-        transientProbeVectors.add(spiceVector)
-      }
+      probeVectors.add(spiceVector)
       currentProbeVectorMappings.push({
         simulation_current_probe_id: probe.simulation_current_probe_id,
         name: probe.name,
@@ -229,27 +343,20 @@ export const processSimulationExperiment = (
     }
   }
 
-  if (transientProbeVectors.size > 0 && isTransientExperiment) {
-    const probeVectors = [...transientProbeVectors].join(" ")
-    netlist.printStatements.push(`.PRINT TRAN ${probeVectors}`)
-    netlist.saveStatements.push(`.SAVE ${probeVectors}`)
+  if (probeVectors.size > 0) {
+    const spiceProbeVectors = [...probeVectors].join(" ")
+    const print = new Print({
+      analysis: spiceAnalysisName,
+      expressions: [spiceProbeVectors],
+    })
+    print.command = ".PRINT"
+    netlist.printStatements.push(print.getString())
+
+    const save = new Save([spiceProbeVectors])
+    save.command = ".SAVE"
+    netlist.saveStatements.push(save.getString())
   }
 
-  const timePerStep = simExperiment.time_per_step
-  const endTime = simExperiment.end_time_ms
-  const startTimeMs = simExperiment.start_time_ms
-
-  if (timePerStep && endTime) {
-    // circuit-json values are in ms, SPICE requires seconds
-    const startTime = (startTimeMs ?? 0) / 1000
-
-    let tranCmd = `.tran ${formatNumberForSpice(
-      timePerStep / 1000,
-    )} ${formatNumberForSpice(endTime / 1000)}`
-    if (startTime > 0) {
-      tranCmd += ` ${formatNumberForSpice(startTime)}`
-    }
-    tranCmd += " UIC"
-    netlist.tranCommand = tranCmd
-  }
+  netlist.analysisCommand =
+    buildAnalysisCommand(simulationExperiment)?.getString() ?? null
 }

@@ -16,15 +16,17 @@
     "@tscircuit/circuit-json-util": "^0.0.72",
     "@types/bun": "^1.2.15",
     "bun-match-svg": "^0.0.13",
-    "circuit-json": "^0.0.436",
+    "circuit-json": "^0.0.454",
     "eecircuit-engine": "^1.5.2",
     "format-si-unit": "^0.0.7",
+    "spicets": "^0.0.4",
     "tscircuit": "^0.0.936",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {
     "@tscircuit/circuit-json-util": "*",
     "circuit-json": "*",
+    "spicets": "*",
     "typescript": "^5.0.0"
   },
   "dependencies": {
