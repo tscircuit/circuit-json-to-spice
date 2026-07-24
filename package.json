@@ -28,6 +28,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "circuit-json-to-connectivity-map": "^0.0.22"
+    "circuit-json-to-connectivity-map": "^0.0.22",
+    "spicets": "^0.0.4"
   }
 }

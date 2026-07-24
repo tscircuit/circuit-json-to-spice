@@ -8,6 +8,7 @@ import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { VoltageSourceCommand } from "lib/spice-commands"
 import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
+import { Ac, Dc, Op, Options, Print, Save, Tran } from "spicets"
 import { formatNumberForSpice, sanitizeIdentifier } from "./helpers"
 
 const spiceOptionOrder = ["method", "reltol", "abstol", "vntol"] as const
@@ -101,17 +102,18 @@ const buildAnalysisCommand = (simulationExperiment: SimulationExperiment) => {
     if (timePerStepMs === undefined || endTimeMs === undefined) return null
 
     const startTimeSeconds = (startTimeMs ?? 0) / 1000
-    let analysisCommand = `.tran ${formatNumberForSpice(
-      timePerStepMs / 1000,
-    )} ${formatNumberForSpice(endTimeMs / 1000)}`
-    if (startTimeSeconds > 0) {
-      analysisCommand += ` ${formatNumberForSpice(startTimeSeconds)}`
-    }
-    return `${analysisCommand} UIC`
+    return new Tran({
+      step: formatNumberForSpice(timePerStepMs / 1000),
+      stop: formatNumberForSpice(endTimeMs / 1000),
+      ...(startTimeSeconds > 0
+        ? { start: formatNumberForSpice(startTimeSeconds) }
+        : {}),
+      uic: true,
+    })
   }
 
   if (simulationExperiment.experiment_type === "spice_dc_operating_point") {
-    return ".op"
+    return new Op()
   }
 
   if (simulationExperiment.experiment_type === "spice_dc_sweep") {
@@ -137,9 +139,12 @@ const buildAnalysisCommand = (simulationExperiment: SimulationExperiment) => {
     } else {
       return null
     }
-    return `.dc ${dcSweepSourceName} ${formatNumberForSpice(
-      dc_sweep_start,
-    )} ${formatNumberForSpice(dc_sweep_stop)} ${formatNumberForSpice(dc_sweep_step)}`
+    return new Dc({
+      source: dcSweepSourceName,
+      start: formatNumberForSpice(dc_sweep_start),
+      stop: formatNumberForSpice(dc_sweep_stop),
+      step: formatNumberForSpice(dc_sweep_step),
+    })
   }
 
   const {
@@ -160,9 +165,12 @@ const buildAnalysisCommand = (simulationExperiment: SimulationExperiment) => {
     ac_sweep_type === "linear" ? ac_sample_count : ac_samples_per_interval
   if (sampleSetting === undefined) return null
   const spiceSweepType = getSpiceAcSweepType(ac_sweep_type)
-  return `.ac ${spiceSweepType} ${sampleSetting} ${formatNumberForSpice(
-    ac_start_frequency_hz,
-  )} ${formatNumberForSpice(ac_stop_frequency_hz)}`
+  return new Ac({
+    sweep: spiceSweepType,
+    points: sampleSetting,
+    start: formatNumberForSpice(ac_start_frequency_hz),
+    stop: formatNumberForSpice(ac_stop_frequency_hz),
+  })
 }
 
 export const processSimulationExperiment = ({
@@ -187,15 +195,16 @@ export const processSimulationExperiment = ({
 
   const spiceOptions = simulationExperiment.spice_options
   if (spiceOptions) {
-    const optionParts = spiceOptionOrder
-      .map((key) => {
-        const spiceOption = spiceOptions[key]
-        return spiceOption === undefined ? null : `${key}=${spiceOption}`
-      })
-      .filter((part): part is string => part !== null)
+    const optionValues: Record<string, string | number> = {}
+    for (const key of spiceOptionOrder) {
+      const spiceOption = spiceOptions[key]
+      if (spiceOption !== undefined) {
+        optionValues[key] = spiceOption
+      }
+    }
 
-    if (optionParts.length > 0) {
-      netlist.optionStatements.push(`.options ${optionParts.join(" ")}`)
+    if (Object.keys(optionValues).length > 0) {
+      netlist.optionStatements.push(new Options(optionValues).getString())
     }
   }
 
@@ -336,11 +345,18 @@ export const processSimulationExperiment = ({
 
   if (probeVectors.size > 0) {
     const spiceProbeVectors = [...probeVectors].join(" ")
-    netlist.printStatements.push(
-      `.PRINT ${spiceAnalysisName} ${spiceProbeVectors}`,
-    )
-    netlist.saveStatements.push(`.SAVE ${spiceProbeVectors}`)
+    const print = new Print({
+      analysis: spiceAnalysisName,
+      expressions: [spiceProbeVectors],
+    })
+    print.command = ".PRINT"
+    netlist.printStatements.push(print.getString())
+
+    const save = new Save([spiceProbeVectors])
+    save.command = ".SAVE"
+    netlist.saveStatements.push(save.getString())
   }
 
-  netlist.analysisCommand = buildAnalysisCommand(simulationExperiment)
+  netlist.analysisCommand =
+    buildAnalysisCommand(simulationExperiment)?.getString() ?? null
 }
