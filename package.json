@@ -2,6 +2,10 @@
   "name": "circuit-json-to-spice",
   "main": "dist/index.js",
   "version": "0.0.45",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tscircuit/circuit-json-to-spice.git"
+  },
   "type": "module",
   "scripts": {
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap inline -d dist",
