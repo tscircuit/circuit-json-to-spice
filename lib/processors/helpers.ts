@@ -1,12 +1,26 @@
 import type { SimulationSwitch } from "circuit-json"
 
 export function formatResistance(resistance: number): string {
+  if (
+    resistance === null ||
+    resistance === undefined ||
+    !Number.isFinite(resistance)
+  ) {
+    return `${resistance}`
+  }
   if (resistance >= 1e6) return `${resistance / 1e6}MEG`
   if (resistance >= 1e3) return `${resistance / 1e3}K`
   return resistance.toString()
 }
 
 export function formatCapacitance(capacitance: number): string {
+  if (
+    capacitance === null ||
+    capacitance === undefined ||
+    !Number.isFinite(capacitance)
+  ) {
+    return `${capacitance}`
+  }
   if (capacitance >= 1e-3) return `${capacitance * 1e3}M`
   if (capacitance >= 1e-6) return `${capacitance * 1e6}U`
   if (capacitance >= 1e-9) return `${capacitance * 1e9}N`
@@ -15,6 +29,13 @@ export function formatCapacitance(capacitance: number): string {
 }
 
 export function formatInductance(inductance: number): string {
+  if (
+    inductance === null ||
+    inductance === undefined ||
+    !Number.isFinite(inductance)
+  ) {
+    return `${inductance}`
+  }
   if (inductance >= 1) return inductance.toString()
   if (inductance >= 1e-3) return `${inductance * 1e3}m`
   if (inductance >= 1e-6) return `${inductance * 1e6}u`
