@@ -507,3 +507,28 @@ R1 VM GND 1Meg
     "Xsimulation_spice_subcircuit_0 N1 N2 N3 0 N4 N5 N6 N7 N8 N9 0 N10 N11 N12 N13 N14 N15 DRV8876_TRANS",
   )
 })
+
+test("component with invalid null value does not discard entire netlist", () => {
+  const circuitJson: AnyCircuitElement[] = [
+    {
+      type: "source_component",
+      source_component_id: "r1",
+      name: "R1",
+      ftype: "simple_resistor",
+      resistance: 1000,
+    } as any,
+    {
+      type: "source_component",
+      source_component_id: "r2",
+      name: "R2",
+      ftype: "simple_resistor",
+      resistance: null,
+    } as any,
+  ]
+
+  const netlist = circuitJsonToSpice(circuitJson)
+  const spiceString = netlist.toSpiceString()
+
+  expect(spiceString).toContain("RR1")
+  expect(spiceString).toContain("RR2")
+})
