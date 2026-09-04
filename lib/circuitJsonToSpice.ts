@@ -127,14 +127,32 @@ export function circuitJsonToSpice(
     }
   }
 
-  for (const simSource of su(circuitJson).simulation_voltage_source.list()) {
-    const neg_port_id =
-      (simSource as any).negative_source_port_id ??
-      (simSource as any).terminal2_source_port_id
-    if (neg_port_id) {
-      const gnd_net = connMap.getNetConnectedToId(neg_port_id)
-      if (gnd_net) {
-        groundNets.add(gnd_net)
+  // Fallback: if nothing above identified a ground net, use voltage-source
+  // negative terminals as the ground reference — but skip any net that is also
+  // a source's POSITIVE terminal. Such a net is a genuine internal node (e.g.
+  // the shared node between two stacked sources, or a high-side source's return
+  // net), so grounding it would collapse distinct nodes into 0 and self-short
+  // the later source (e.g. "V 0 0"). Nets that are only ever negative terminals
+  // (including a common ground shared by several sources) are true grounds.
+  if (groundNets.size === 0) {
+    const voltageSources = su(circuitJson).simulation_voltage_source.list()
+    const positiveTerminalNets = new Set<string>()
+    const negativeTerminalNets = new Set<string>()
+    for (const simSource of voltageSources) {
+      const pos_port_id =
+        (simSource as any).positive_source_port_id ??
+        (simSource as any).terminal1_source_port_id
+      const neg_port_id =
+        (simSource as any).negative_source_port_id ??
+        (simSource as any).terminal2_source_port_id
+      const pos_net = pos_port_id && connMap.getNetConnectedToId(pos_port_id)
+      const neg_net = neg_port_id && connMap.getNetConnectedToId(neg_port_id)
+      if (pos_net) positiveTerminalNets.add(pos_net)
+      if (neg_net) negativeTerminalNets.add(neg_net)
+    }
+    for (const net of negativeTerminalNets) {
+      if (!positiveTerminalNets.has(net)) {
+        groundNets.add(net)
       }
     }
   }
