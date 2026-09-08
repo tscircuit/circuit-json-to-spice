@@ -31,8 +31,10 @@ interface CurrentProbeVectorMapping {
 }
 
 const getPortIdFromNetId = (sourceTraces: SourceTrace[], netId: string) => {
-  const trace = sourceTraces.find((t) =>
-    t.connected_source_net_ids.includes(netId),
+  const trace = sourceTraces.find(
+    (t) =>
+      t.connected_source_net_ids.includes(netId) &&
+      t.connected_source_port_ids.length > 0,
   )
   return trace?.connected_source_port_ids[0]
 }
