@@ -3,13 +3,34 @@ import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SubcircuitCallCommand } from "lib/spice-commands"
 
+function stripInlineComment(line: string): string {
+  let quote: string | undefined
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index]
+    if (quote) {
+      if (char === "\\") index++
+      else if (char === quote) quote = undefined
+    } else if (char === '"' || char === "'") {
+      quote = char
+    } else if (
+      char === "$" ||
+      char === ";" ||
+      (char === "/" && line[index + 1] === "/")
+    ) {
+      return line.slice(0, index)
+    }
+  }
+  return line
+}
+
 export function parseSpiceSubckt(
   source: string,
 ): { modelName: string; pinNames: string[] } | null {
   const logicalLines: string[] = []
 
   for (const physicalLine of source.split(/\r?\n/)) {
-    const trimmedLine = physicalLine.trim()
+    const trimmedLine = stripInlineComment(physicalLine).trim()
+    if (!trimmedLine || trimmedLine.startsWith("*")) continue
 
     if (/^\+/.test(trimmedLine) && logicalLines.length > 0) {
       logicalLines[logicalLines.length - 1] += ` ${trimmedLine.slice(1).trim()}`
