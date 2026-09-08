@@ -162,8 +162,10 @@ export function circuitJsonToSpice(
       if (signal_port_id) {
         net = connMap.getNetConnectedToId(signal_port_id)
       } else if (signal_net_id) {
-        const trace = sourceTraces.find((t) =>
-          t.connected_source_net_ids.includes(signal_net_id!),
+        const trace = sourceTraces.find(
+          (t) =>
+            t.connected_source_net_ids.includes(signal_net_id!) &&
+            t.connected_source_port_ids.length > 0,
         )
         if (trace && trace.connected_source_port_ids.length > 0) {
           const portId = trace.connected_source_port_ids[0]
