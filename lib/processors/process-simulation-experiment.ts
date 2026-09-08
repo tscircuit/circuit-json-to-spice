@@ -280,7 +280,13 @@ export const processSimulationExperiment = ({
   // Current probes are inline ammeter elements, so the 0V sense source is part
   // of the simulated topology even when the experiment does not print current.
   if (simulationCurrentProbes.length > 0) {
-    const senseVoltageSourceNames = new Set<string>()
+    const senseVoltageSourceNames = new Set(
+      netlist.components.flatMap(({ command }) =>
+        command instanceof VoltageSourceCommand
+          ? [command.props.name.toLowerCase()]
+          : [],
+      ),
+    )
     const currentProbeVectorMappings: CurrentProbeVectorMapping[] = []
 
     for (const probe of simulationCurrentProbes) {
@@ -302,10 +308,12 @@ export const processSimulationExperiment = ({
       const senseVoltageSourceBaseName = getSenseVoltageSourceName(probe)
       let senseVoltageSourceName = senseVoltageSourceBaseName
       let duplicateIndex = 2
-      while (senseVoltageSourceNames.has(senseVoltageSourceName)) {
+      while (
+        senseVoltageSourceNames.has(senseVoltageSourceName.toLowerCase())
+      ) {
         senseVoltageSourceName = `${senseVoltageSourceBaseName}_${duplicateIndex++}`
       }
-      senseVoltageSourceNames.add(senseVoltageSourceName)
+      senseVoltageSourceNames.add(senseVoltageSourceName.toLowerCase())
 
       const spiceSenseVoltageSourceName = `V${senseVoltageSourceName}`
       const spiceVector = `I(${spiceSenseVoltageSourceName})`
