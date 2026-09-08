@@ -46,8 +46,11 @@ export function buildSimulationSwitchControlValue(
   }
 
   const startsClosed = simulationSwitch.starts_closed ?? false
-  const closesAt = simulationSwitch.closes_at ?? 0
-  const opensAt = simulationSwitch.opens_at
+  const closesAt = (simulationSwitch.closes_at ?? 0) / 1000
+  const opensAt =
+    simulationSwitch.opens_at === undefined
+      ? undefined
+      : simulationSwitch.opens_at / 1000
   const switchingFrequency = simulationSwitch.switching_frequency
 
   const [initialVoltage, pulsedVoltage] = startsClosed
@@ -64,20 +67,37 @@ export function buildSimulationSwitchControlValue(
     return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
   }
 
-  if (opensAt !== undefined && opensAt > closesAt) {
-    const pulseWidth = Math.max(opensAt - closesAt, 1e-9)
-    const period = closesAt + pulseWidth * 2
+  const events: Array<{ time: number; voltage: number }> = []
+  if (simulationSwitch.closes_at !== undefined) {
+    events.push({ time: closesAt, voltage: highVoltage })
+  }
+  if (opensAt !== undefined) {
+    events.push({ time: opensAt, voltage: lowVoltage })
+  }
+  events.sort((a, b) => a.time - b.time)
 
-    return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
+  let voltage = initialVoltage
+  const points: Array<[number, number]> = [[0, voltage]]
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]
+    if (events[i + 1]?.time === event.time) continue
+    if (event.time === 0) {
+      voltage = event.voltage
+      points[0] = [0, voltage]
+    } else if (event.voltage !== voltage) {
+      const nextTime = events[i + 1]?.time ?? Infinity
+      const transitionTime = Math.min(1e-9, (nextTime - event.time) / 2)
+      points.push(
+        [event.time, voltage],
+        [event.time + transitionTime, event.voltage],
+      )
+      voltage = event.voltage
+    }
   }
 
-  if (closesAt > 0) {
-    const period = closesAt * 2
-    const pulseWidth = Math.max(period / 2, 1e-9)
-    return `PULSE(${formatNumberForSpice(initialVoltage)} ${formatNumberForSpice(pulsedVoltage)} ${formatNumberForSpice(closesAt)} ${riseTime} ${fallTime} ${formatNumberForSpice(pulseWidth)} ${formatNumberForSpice(period)})`
-  }
-
-  return `DC ${startsClosed ? highVoltage : lowVoltage}`
+  if (points.length === 1) return `DC ${voltage}`
+  // PWL holds the last value; an invented PULSE period would repeat the events.
+  return `PWL(${points.map(([time, value]) => `${time} ${value}`).join(" ")})`
 }
 
 export function formatNumberForSpice(value: number) {
