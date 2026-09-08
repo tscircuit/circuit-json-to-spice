@@ -25,7 +25,15 @@ export function parseSpiceSubckt(
 
   const tokens = line.split(/\s+/)
   const modelName = tokens[1]
-  const pinNames = tokens.slice(2)
+  const headerFields = tokens.slice(2)
+  const parameterIndex = headerFields.findIndex(
+    (field, index) =>
+      /^params:/i.test(field) ||
+      field.includes("=") ||
+      headerFields[index + 1]?.startsWith("="),
+  )
+  const pinNames =
+    parameterIndex === -1 ? headerFields : headerFields.slice(0, parameterIndex)
 
   if (!modelName || pinNames.length === 0) return null
   return { modelName, pinNames }
