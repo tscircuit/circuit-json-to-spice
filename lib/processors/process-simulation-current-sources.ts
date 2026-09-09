@@ -32,7 +32,7 @@ export const processSimulationCurrentSources = ({
 
         let sourceExpression = ""
         if (simulationCurrentSource.wave_shape === "sinewave") {
-          const currentOffset = 0
+          const currentOffset = simulationCurrentSource.current ?? 0
           const peakCurrent =
             (simulationCurrentSource.peak_to_peak_current ?? 0) / 2
           const frequencyHz = simulationCurrentSource.frequency ?? 0
@@ -42,12 +42,12 @@ export const processSimulationCurrentSources = ({
           if (frequencyHz > 0) {
             sourceExpression = `SIN(${currentOffset} ${peakCurrent} ${frequencyHz} ${delaySeconds} ${dampingFactor} ${phaseDegrees})`
           } else {
-            sourceExpression = `DC ${peakCurrent}`
+            sourceExpression = `DC ${simulationCurrentSource.current ?? peakCurrent}`
           }
         } else if (simulationCurrentSource.wave_shape === "square") {
-          const initialCurrent = 0
+          const initialCurrent = simulationCurrentSource.current ?? 0
           const pulsedCurrent =
-            simulationCurrentSource.peak_to_peak_current ?? 0
+            initialCurrent + (simulationCurrentSource.peak_to_peak_current ?? 0)
           const frequencyHz = simulationCurrentSource.frequency ?? 0
           const periodSeconds = frequencyHz === 0 ? Infinity : 1 / frequencyHz
           const dutyCycle = simulationCurrentSource.duty_cycle ?? 0.5
@@ -56,6 +56,8 @@ export const processSimulationCurrentSources = ({
           const riseTime = "1n"
           const fallTime = "1n"
           sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+        } else if (simulationCurrentSource.current !== undefined) {
+          sourceExpression = `DC ${simulationCurrentSource.current}`
         }
 
         if (

@@ -2,6 +2,8 @@ import { test, expect } from "bun:test"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import type { AnyCircuitElement } from "circuit-json"
 import { Simulation } from "eecircuit-engine"
+import { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
+import { processSimulationCurrentSources } from "lib/processors/process-simulation-current-sources"
 
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (
@@ -86,6 +88,67 @@ const roundNumber = (value: number, decimals: number) => {
   const factor = 10 ** decimals
   return Math.round(value * factor) / factor
 }
+
+test("AC current sources preserve DC offsets in their simulated waveforms", async () => {
+  const netlist = new SpiceNetlist()
+  const loads: string[] = []
+  const expectedVoltages = new Map<string, [number, number]>()
+  for (const wave_shape of ["sinewave", "square", undefined] as const) {
+    for (const [label, values] of [
+      ["constant", { current: 0.005, peak_to_peak_current: 0 }],
+      ["positive", { current: 0.005, peak_to_peak_current: 0.004 }],
+      ["negative", { current: -0.005, peak_to_peak_current: 0.004 }],
+      ["unbiased", { peak_to_peak_current: 0.004 }],
+    ] as const) {
+      const name = `${wave_shape ?? "small_signal"}_${label}`
+      processSimulationCurrentSources({
+        netlist,
+        simulationCurrentSources: [
+          {
+            type: "simulation_current_source",
+            simulation_current_source_id: name,
+            is_dc_source: false,
+            terminal1_source_port_id: "return",
+            terminal2_source_port_id: "signal",
+            frequency: 1000,
+            wave_shape,
+            ac_magnitude: 0.001,
+            ...values,
+          },
+        ],
+        nodeMap: new Map([
+          ["return", "0"],
+          ["signal", name],
+        ]),
+      })
+      loads.push(`R${name} ${name} 0 1k`)
+      const offset = ("current" in values ? values.current : 0) * 1000
+      const range = values.peak_to_peak_current * 1000
+      expectedVoltages.set(
+        name,
+        wave_shape === "sinewave"
+          ? [offset - range / 2, offset + range / 2]
+          : [offset, offset + (wave_shape === "square" ? range : 0)],
+      )
+    }
+  }
+
+  const sim = new Simulation()
+  await sim.start()
+  sim.setNetList(
+    netlist
+      .toSpiceString()
+      .replace(".END", `${loads.join("\n")}\n.tran 1u 2m\n.END`),
+  )
+  const result = await sim.runSim()
+  if (result.dataType !== "real")
+    throw new Error("Expected real transient voltages")
+  for (const [name, [minimum, maximum]] of expectedVoltages) {
+    const voltages = result.data.find((entry) => entry.name === `v(${name})`)!
+    expect(Math.abs(Math.min(...voltages.values) - minimum)).toBeLessThan(0.01)
+    expect(Math.abs(Math.max(...voltages.values) - maximum)).toBeLessThan(0.01)
+  }
+})
 
 test("simulation switch drives square wave", async () => {
   const circuitJson: AnyCircuitElement[] = [
