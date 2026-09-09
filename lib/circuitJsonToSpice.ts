@@ -32,6 +32,7 @@ import type {
   SourcePortOrNetIdToSpiceNodeNameMap,
   SpiceNodeName,
 } from "./spice-node-map"
+import { createSpiceNodeNameAllocator } from "./create-spice-node-name-allocator"
 
 export function circuitJsonToSpice(
   circuitJson: AnyCircuitElement[],
@@ -80,6 +81,7 @@ export function circuitJsonToSpice(
       }
     }
   }
+  const allocateNodeName = createSpiceNodeNameAllocator(probeNames)
 
   // If there are probe names like N1, N2, make sure we don't have conflicts
   const numericProbeNames = [...probeNames]
@@ -173,12 +175,12 @@ export function circuitJsonToSpice(
 
       if (net) {
         if (!netToNodeName.has(net)) {
-          netToNodeName.set(net, probe.name)
+          netToNodeName.set(net, allocateNodeName(probe.name))
         }
-      } else if (signal_port_id && probe.name) {
+      } else if (signal_port_id && !nodeMap.has(signal_port_id)) {
         // It's a floating port with a probe, so we map it directly. This port
         // will now be skipped in the second-pass for unconnected ports.
-        nodeMap.set(signal_port_id, probe.name)
+        nodeMap.set(signal_port_id, allocateNodeName(probe.name))
       }
     }
   }
@@ -189,7 +191,7 @@ export function circuitJsonToSpice(
     const net = connMap.getNetConnectedToId(portId)
     if (net) {
       if (!netToNodeName.has(net)) {
-        netToNodeName.set(net, `N${nodeCounter++}`)
+        netToNodeName.set(net, allocateNodeName(`N${nodeCounter++}`))
       }
       nodeMap.set(portId, netToNodeName.get(net)!)
     }
@@ -213,7 +215,7 @@ export function circuitJsonToSpice(
     // If a port wasn't in a net, it won't be in the nodeMap yet
     if (!nodeMap.has(portId)) {
       // Unconnected port, create a new floating node for it
-      nodeMap.set(portId, `N${nodeCounter++}`)
+      nodeMap.set(portId, allocateNodeName(`N${nodeCounter++}`))
     }
   }
 
