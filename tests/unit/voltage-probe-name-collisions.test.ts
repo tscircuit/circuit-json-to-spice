@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import type { AnyCircuitElement } from "circuit-json"
+import { type AnyCircuitElement, simulation_voltage_probe } from "circuit-json"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import { getTwoDividerCircuit } from "tests/fixtures/two-divider-circuit"
 
@@ -20,14 +20,27 @@ test.each([
   ["VOUT", "VOUT"],
   ["VOUT", "vout"],
   ["N1", "n1"],
+  ["Output A", "Output_A"],
+  ["OUT,A", "out_a"],
+  ["V(out)", "OUT_B"],
+  [" ", "OUT_B"],
+  ["输出", "OUT_B"],
 ])(
   "probe names %s and %s preserve separate connected nets",
   (first, second) => {
-    const { netlist, mappings } = getProbeMappings(
-      getTwoDividerCircuit([first, second]),
-    )
+    const circuit = getTwoDividerCircuit([first, second])
+    const original = structuredClone(circuit)
+    for (const probe of circuit.filter(
+      (element) => element.type === "simulation_voltage_probe",
+    )) {
+      expect(simulation_voltage_probe.safeParse(probe).success).toBe(true)
+    }
+    const { netlist, mappings } = getProbeMappings(circuit)
+    expect(circuit).toEqual(original)
     expect(mappings.map((mapping) => mapping.name)).toEqual([first, second])
     const [node1, node2] = mappings.map((mapping) => mapping.source_node_name)
+    expect(node1).toMatch(/^[A-Za-z0-9_]+$/)
+    expect(node2).toMatch(/^[A-Za-z0-9_]+$/)
     expect(node1.toLowerCase()).not.toBe(node2.toLowerCase())
     const spice = netlist.toSpiceString()
     expect(spice).toContain(`RR2 ${node1} 0 1K`)
@@ -47,6 +60,16 @@ test.each([
     ).toBe(3)
   },
 )
+
+test("unique alphanumeric and underscore probe names stay unchanged", () => {
+  const { mappings } = getProbeMappings(
+    getTwoDividerCircuit(["OUT_A", "OUT_B"]),
+  )
+  expect(mappings.map((mapping) => mapping.source_node_name)).toEqual([
+    "OUT_A",
+    "OUT_B",
+  ])
+})
 
 test("source-net probes with repeated names preserve separate nets", () => {
   const circuit = getTwoDividerCircuit(["OUT", "OUT"]).map((element) => {
@@ -130,3 +153,28 @@ test("collision suffixes do not take a different probe's preferred name", () => 
       .size,
   ).toBe(3)
 })
+
+test.each([
+  ["OUT A", "OUT,A", "OUT A_2"],
+  ["OUT A", "out,a", "out a_2"],
+])(
+  "collision suffixes reserve normalized names for %s, %s and %s",
+  (first, second, third) => {
+    const circuit = getTwoDividerCircuit([first, second])
+    circuit.push({
+      type: "simulation_voltage_probe",
+      simulation_voltage_probe_id: "probe_supply",
+      name: third,
+      signal_input_source_port_id: "R1_1",
+    })
+    const { mappings } = getProbeMappings(circuit)
+    expect(mappings.map((mapping) => mapping.name)).toEqual([
+      first,
+      second,
+      third,
+    ])
+    expect(
+      mappings.map((mapping) => mapping.source_node_name.toLowerCase()),
+    ).toEqual(["out_a", "out_a_3", "out_a_2"])
+  },
+)

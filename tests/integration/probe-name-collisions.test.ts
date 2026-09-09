@@ -8,6 +8,14 @@ test.each([
   ["VOUT", "vout"],
   ["gnd", "OUT_B"],
   ["0", "OUT_B"],
+  ["OUT_A", "OUT_B"],
+  ["Output A", "OUT_B"],
+  ["OUT,A", "OUT_B"],
+  ["V(out)", "OUT_B"],
+  ["Output A", "Output_A"],
+  ["Output A", "output_a"],
+  ["0", "probe 0"],
+  ["输出", "OUT_B"],
 ])(
   "divider voltages remain correct with probe names %s and %s",
   async (first, second) => {
