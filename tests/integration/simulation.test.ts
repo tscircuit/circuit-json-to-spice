@@ -2,6 +2,8 @@ import { test, expect } from "bun:test"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import type { AnyCircuitElement } from "circuit-json"
 import { Simulation } from "eecircuit-engine"
+import { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
+import { processSimpleMosfet } from "lib/processors/simple-mosfet"
 
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (
@@ -86,6 +88,61 @@ const roundNumber = (value: number, decimals: number) => {
   const factor = 10 ** decimals
   return Math.round(value * factor) / factor
 }
+
+test("depletion MOSFETs conduct at zero gate bias while enhancement MOSFETs remain off", async () => {
+  const netlist = new SpiceNetlist()
+  const supplies: string[] = []
+  for (const channel_type of ["n", "p"] as const) {
+    for (const mosfet_mode of ["enhancement", "depletion"] as const) {
+      const name = `${channel_type}_${mosfet_mode}`
+      const componentPorts = ["drain", "gate", "source"].map((portName) => ({
+        type: "source_port" as const,
+        source_port_id: portName,
+        source_component_id: name,
+        name: portName,
+      }))
+      const component = processSimpleMosfet({
+        netlist,
+        component: {
+          type: "source_component",
+          source_component_id: name,
+          name,
+          ftype: "simple_mosfet",
+          channel_type,
+          mosfet_mode,
+        },
+        componentPorts,
+        nodeMap: new Map([
+          ["drain", name],
+          ["gate", "0"],
+          ["source", "0"],
+        ]),
+      })!
+      netlist.addComponent(component)
+      supplies.push(`V${name} ${name} 0 ${channel_type === "n" ? 1 : -1}`)
+    }
+  }
+
+  const sim = new Simulation()
+  await sim.start()
+  sim.setNetList(
+    netlist
+      .toSpiceString()
+      .replace(".END", `${supplies.join("\n")}\n.op\n.END`),
+  )
+  const result = await sim.runSim()
+  if (result.dataType !== "real") throw new Error("Expected real DC currents")
+
+  for (const channel of ["n", "p"]) {
+    const current = (mode: string) =>
+      Math.abs(
+        result.data.find((entry) => entry.name === `i(v${channel}_${mode})`)!
+          .values[0],
+      )
+    expect(current("enhancement")).toBeLessThan(1e-6)
+    expect(current("depletion")).toBeGreaterThan(0.01)
+  }
+})
 
 test("simulation switch drives square wave", async () => {
   const circuitJson: AnyCircuitElement[] = [

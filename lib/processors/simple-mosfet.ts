@@ -41,18 +41,12 @@ export const processSimpleMosfet = ({
     const modelName = `${modelType}_${mosfet_mode.toUpperCase()}`
 
     if (!netlist.models.has(modelName)) {
-      if (mosfet_mode === "enhancement") {
-        const vto = channel_type === "p" ? -1 : 1
-        netlist.models.set(
-          modelName,
-          `.MODEL ${modelName} ${modelType} (VTO=${vto} KP=0.1)`,
-        )
-      } else {
-        netlist.models.set(
-          modelName,
-          `.MODEL ${modelName} ${modelType} (KP=0.1)`,
-        )
-      }
+      const enhancementVto = channel_type === "p" ? -1 : 1
+      const vto = mosfet_mode === "depletion" ? -enhancementVto : enhancementVto
+      netlist.models.set(
+        modelName,
+        `.MODEL ${modelName} ${modelType} (VTO=${vto} KP=0.1)`,
+      )
     }
 
     const mosfetCmd = new MOSFETCommand({
