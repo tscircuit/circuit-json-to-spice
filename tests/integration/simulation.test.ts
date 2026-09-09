@@ -272,3 +272,80 @@ test("simulation switch drives square wave", async () => {
     ]
   `)
 })
+
+test.each(["direct", "linked", "linked-reversed"])(
+  "current-driven circuit honors an explicitly marked ground net (%s)",
+  async (connection) => {
+    const circuitJson: AnyCircuitElement[] = [
+      {
+        type: "source_component",
+        source_component_id: "R1",
+        name: "R1",
+        ftype: "simple_resistor",
+        resistance: 1000,
+      },
+      ...["signal", "return"].flatMap((id, index): AnyCircuitElement[] => [
+        {
+          type: "source_port",
+          source_port_id: id,
+          source_component_id: "R1",
+          name: `pin${index + 1}`,
+          pin_number: index + 1,
+        },
+        {
+          type: "source_net",
+          source_net_id: `net_${id}`,
+          name: id.toUpperCase(),
+          member_source_group_ids: [],
+          is_ground: id === "return" && connection === "direct",
+        },
+        {
+          type: "source_trace",
+          source_trace_id: `trace_${id}`,
+          connected_source_port_ids: [id],
+          connected_source_net_ids: [`net_${id}`],
+        },
+      ]),
+      {
+        type: "simulation_current_source",
+        simulation_current_source_id: "drive",
+        is_dc_source: true,
+        positive_source_net_id: "net_return",
+        negative_source_net_id: "net_signal",
+        current: 0.001,
+      },
+    ]
+
+    if (connection !== "direct") {
+      circuitJson.push(
+        {
+          type: "source_net",
+          source_net_id: "net_ground",
+          name: "REFERENCE",
+          member_source_group_ids: [],
+          is_ground: true,
+        },
+        {
+          type: "source_trace",
+          source_trace_id: "ground_link",
+          connected_source_port_ids: [],
+          connected_source_net_ids: ["net_return", "net_ground"],
+        },
+      )
+      if (connection === "linked-reversed") circuitJson.reverse()
+    }
+
+    const netlist = circuitJsonToSpice(circuitJson)
+    expect(netlist.toSpiceString()).toContain("RR1 N1 0 1K")
+    expect(netlist.toSpiceString()).toContain("Idrive 0 N1 DC 0.001")
+    netlist.analysisCommand = ".op"
+
+    const sim = new Simulation()
+    await sim.start()
+    sim.setNetList(netlist.toSpiceString())
+    const result = await sim.runSim()
+    if (result.dataType !== "real") throw new Error("Expected real DC voltages")
+    const voltage = result.data.find((entry) => entry.name === "v(n1)")!
+    expect(voltage.values[0]).toBeCloseTo(1, 6)
+  },
+)

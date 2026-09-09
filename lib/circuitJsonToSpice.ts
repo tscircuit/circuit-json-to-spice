@@ -93,29 +93,17 @@ export function circuitJsonToSpice(
 
   const groundNets = new Set<string>()
 
-  // Find ground from source nets that include "gnd" in the name
+  // Find explicitly marked ground nets and nets with "gnd" in the name.
   const gndSourceNetIds = new Set(
     su(circuitJson)
       .source_net.list()
-      .filter((sn) => sn.name?.toLowerCase().includes("gnd"))
+      .filter((sn) => sn.is_ground || sn.name?.toLowerCase().includes("gnd"))
       .map((sn) => sn.source_net_id),
   )
 
-  if (gndSourceNetIds.size > 0) {
-    for (const trace of su(circuitJson).source_trace.list()) {
-      if (trace.connected_source_port_ids.length > 0) {
-        const isOnGndNet = trace.connected_source_net_ids.some((netId) =>
-          gndSourceNetIds.has(netId),
-        )
-        if (isOnGndNet) {
-          const aPortOnGnd = trace.connected_source_port_ids[0]
-          const gndNet = connMap.getNetConnectedToId(aPortOnGnd)
-          if (gndNet) {
-            groundNets.add(gndNet)
-          }
-        }
-      }
-    }
+  for (const sourceNetId of gndSourceNetIds) {
+    const groundNet = connMap.getNetConnectedToId(sourceNetId)
+    if (groundNet) groundNets.add(groundNet)
   }
 
   // Find ground node from ports named "GND"
