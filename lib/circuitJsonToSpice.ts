@@ -27,6 +27,7 @@ import { processSimulationCurrentSources } from "./processors/process-simulation
 import { processSimulationExperiment } from "./processors/process-simulation-experiment"
 import { processSimulationOpAmps } from "./processors/process-simulation-op-amp"
 import { processSimulationSpiceSubcircuits } from "./processors/process-simulation-spice-subcircuits"
+import { allocateSourceComponentNames } from "./allocate-source-component-names"
 import type {
   ConnectivityNetId,
   SourcePortOrNetIdToSpiceNodeNameMap,
@@ -218,7 +219,12 @@ export function circuitJsonToSpice(
   }
 
   // Process each component
-  for (const component of sourceComponents) {
+  for (const component of allocateSourceComponentNames(sourceComponents, {
+    reservedVoltageSourceNames: su(circuitJson)
+      .simulation_voltage_source.list()
+      .map((source) => `V${source.simulation_voltage_source_id}`),
+    reservedNodeNames: nodeMap.values(),
+  })) {
     if (component.type !== "source_component") continue
 
     const componentPorts = su(circuitJson)
