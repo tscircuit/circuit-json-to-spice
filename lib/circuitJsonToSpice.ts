@@ -93,11 +93,11 @@ export function circuitJsonToSpice(
 
   const groundNets = new Set<string>()
 
-  // Find ground from source nets that include "gnd" in the name
+  // Find explicitly marked ground nets and nets with "gnd" in the name.
   const gndSourceNetIds = new Set(
     su(circuitJson)
       .source_net.list()
-      .filter((sn) => sn.name?.toLowerCase().includes("gnd"))
+      .filter((sn) => sn.is_ground || sn.name?.toLowerCase().includes("gnd"))
       .map((sn) => sn.source_net_id),
   )
 
