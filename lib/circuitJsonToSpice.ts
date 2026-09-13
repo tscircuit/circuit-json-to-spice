@@ -195,15 +195,15 @@ export function circuitJsonToSpice(
     }
   }
 
-  // Simulation sources may reference a source net directly. Mirror connected
-  // source-net ids into the node map so source processors resolve both forms.
+  // Simulation sources may reference a source net directly. Resolve its full
+  // connectivity so aliases joined by net-to-net traces use the same node.
   for (const trace of sourceTraces) {
-    const connectedNodeName = trace.connected_source_port_ids
-      .map((sourcePortId) => nodeMap.get(sourcePortId))
-      .find((nodeName) => nodeName !== undefined)
-    if (!connectedNodeName) continue
     for (const sourceNetId of trace.connected_source_net_ids) {
-      nodeMap.set(sourceNetId, connectedNodeName)
+      const net = connMap.getNetConnectedToId(sourceNetId)
+      const connectedNodeName = net ? netToNodeName.get(net) : undefined
+      if (connectedNodeName) {
+        nodeMap.set(sourceNetId, connectedNodeName)
+      }
     }
   }
 
