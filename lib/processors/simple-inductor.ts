@@ -11,6 +11,7 @@ export const processSimpleInductor = ({
   nodes: string[]
 }): SpiceComponent | null => {
   if ("inductance" in component && "name" in component) {
+    if (!Number.isFinite(component.inductance)) return null
     const inductorCmd = new InductorCommand({
       name: component.name as string,
       positiveNode: nodes[0] || "0",
