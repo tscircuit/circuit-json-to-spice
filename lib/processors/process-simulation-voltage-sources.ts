@@ -5,6 +5,46 @@ import { VoltageSourceCommand } from "lib/spice-commands"
 import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
 import { formatNumberForSpice, formatSecondsForSpice } from "./helpers"
 
+const getPositiveSourceId = (
+  simulationVoltageSource: SimulationVoltageSource,
+): string | undefined => {
+  const source = simulationVoltageSource as {
+    positive_source_port_id?: string
+    positive_source_net_id?: string
+    terminal1_source_port_id?: string
+    terminal1_source_net_id?: string
+  }
+  return simulationVoltageSource.is_dc_source === false
+    ? (source.terminal1_source_port_id ??
+        source.terminal1_source_net_id ??
+        source.positive_source_port_id ??
+        source.positive_source_net_id)
+    : (source.positive_source_port_id ??
+        source.positive_source_net_id ??
+        source.terminal1_source_port_id ??
+        source.terminal1_source_net_id)
+}
+
+const getNegativeSourceId = (
+  simulationVoltageSource: SimulationVoltageSource,
+): string | undefined => {
+  const source = simulationVoltageSource as {
+    negative_source_port_id?: string
+    negative_source_net_id?: string
+    terminal2_source_port_id?: string
+    terminal2_source_net_id?: string
+  }
+  return simulationVoltageSource.is_dc_source === false
+    ? (source.terminal2_source_port_id ??
+        source.terminal2_source_net_id ??
+        source.negative_source_port_id ??
+        source.negative_source_net_id)
+    : (source.negative_source_port_id ??
+        source.negative_source_net_id ??
+        source.terminal2_source_port_id ??
+        source.terminal2_source_net_id)
+}
+
 export const processSimulationVoltageSources = ({
   netlist,
   simulationVoltageSources,
@@ -17,14 +57,11 @@ export const processSimulationVoltageSources = ({
   for (const simulationVoltageSource of simulationVoltageSources) {
     if (simulationVoltageSource.type !== "simulation_voltage_source") continue
 
+    const positiveSourceId = getPositiveSourceId(simulationVoltageSource)
+    const negativeSourceId = getNegativeSourceId(simulationVoltageSource)
+
     if (simulationVoltageSource.is_dc_source === false) {
       // AC Source
-      const positiveSourceId =
-        simulationVoltageSource.terminal1_source_port_id ??
-        simulationVoltageSource.terminal1_source_net_id
-      const negativeSourceId =
-        simulationVoltageSource.terminal2_source_port_id ??
-        simulationVoltageSource.terminal2_source_net_id
       if (positiveSourceId && negativeSourceId) {
         const positiveNode = nodeMap.get(positiveSourceId) || "0"
         const negativeNode = nodeMap.get(negativeSourceId) || "0"
@@ -112,27 +149,6 @@ export const processSimulationVoltageSources = ({
       }
     } else {
       // DC Source (is_dc_source is true or undefined)
-      // Fall back to terminal1/terminal2 (the AC path already uses these) so a
-      // DC source that only has terminal port ids isn't silently dropped.
-      const legacyPositiveSourceId =
-        "terminal1_source_port_id" in simulationVoltageSource &&
-        typeof simulationVoltageSource.terminal1_source_port_id === "string"
-          ? simulationVoltageSource.terminal1_source_port_id
-          : undefined
-      const legacyNegativeSourceId =
-        "terminal2_source_port_id" in simulationVoltageSource &&
-        typeof simulationVoltageSource.terminal2_source_port_id === "string"
-          ? simulationVoltageSource.terminal2_source_port_id
-          : undefined
-      const positiveSourceId =
-        simulationVoltageSource.positive_source_port_id ??
-        simulationVoltageSource.positive_source_net_id ??
-        legacyPositiveSourceId
-      const negativeSourceId =
-        simulationVoltageSource.negative_source_port_id ??
-        simulationVoltageSource.negative_source_net_id ??
-        legacyNegativeSourceId
-
       if (positiveSourceId && negativeSourceId) {
         const positiveNode = nodeMap.get(positiveSourceId) || "0"
         const negativeNode = nodeMap.get(negativeSourceId) || "0"
