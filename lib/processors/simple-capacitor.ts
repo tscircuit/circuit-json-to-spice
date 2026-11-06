@@ -11,6 +11,7 @@ export const processSimpleCapacitor = ({
   nodes: string[]
 }): SpiceComponent | null => {
   if ("capacitance" in component && "name" in component) {
+    if (!Number.isFinite(component.capacitance)) return null
     const capacitorCmd = new CapacitorCommand({
       name: component.name as string,
       positiveNode: nodes[0] || "0",
