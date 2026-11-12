@@ -49,7 +49,8 @@ export const convertSpiceNetlistToString = (netlist: SpiceNetlist): string => {
       .trim()
       .toLowerCase()
       .split(/\s+/)[0]
-    const alreadyIncludesAnalysis = lines.some(
+    // The first line is the SPICE title, not an executable directive.
+    const alreadyIncludesAnalysis = lines.slice(1).some(
       (line) => line.trim().toLowerCase().split(/\s+/)[0] === analysisDirective,
     )
     if (!alreadyIncludesAnalysis) {
