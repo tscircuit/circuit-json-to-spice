@@ -97,6 +97,29 @@ test("unrelated unnamed returns are never silently merged", () => {
     .filter((line) => /^V/.test(line))
     .map((line) => line.split(/\s+/)[2])
   expect(new Set(returns).size).toBe(2)
+  expect(returns).not.toContain("0")
+})
+
+test("a floating source is not grounded when another source defines ground", () => {
+  const netlist = circuitJsonToSpice(
+    sourceCircuit({ stacked: false, explicitGround: true }),
+  ).toSpiceString()
+  const sources = netlist
+    .split("\n")
+    .filter((line) => /^V/.test(line))
+    .map((line) => line.split(/\s+/))
+  const floatingSource = sources.find(([name]) => name === "Vsupply")!
+  const groundedSource = sources.find(([name]) => name === "Voffset")!
+  expect(floatingSource[1]).not.toBe("0")
+  expect(floatingSource[2]).not.toBe("0")
+  expect(floatingSource[1]).not.toBe(floatingSource[2])
+  expect(groundedSource[2]).toBe("0")
+  expect(netlist).toMatchInlineSnapshot(`
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N2 N1 DC 5
+    Voffset N3 0 DC 3
+    .END"
+  `)
 })
 
 test("one unambiguous unnamed source return remains a usable reference", () => {
