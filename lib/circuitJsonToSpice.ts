@@ -134,13 +134,19 @@ export function circuitJsonToSpice(
     const negativeTerminalNets = new Set<ConnectivityNetId>()
     for (const simSource of su(circuitJson).simulation_voltage_source.list()) {
       const positiveSourceId =
-        simSource.is_dc_source === false
+        ("positive_source_port_id" in simSource
+          ? simSource.positive_source_port_id
+          : undefined) ??
+        ("terminal1_source_port_id" in simSource
           ? simSource.terminal1_source_port_id
-          : simSource.positive_source_port_id
+          : undefined)
       const negativeSourceId =
-        simSource.is_dc_source === false
+        ("negative_source_port_id" in simSource
+          ? simSource.negative_source_port_id
+          : undefined) ??
+        ("terminal2_source_port_id" in simSource
           ? simSource.terminal2_source_port_id
-          : simSource.negative_source_port_id
+          : undefined)
       const positiveNet =
         positiveSourceId && connMap.getNetConnectedToId(positiveSourceId)
       const negativeNet =
