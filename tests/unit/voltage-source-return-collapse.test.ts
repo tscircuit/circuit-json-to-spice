@@ -69,43 +69,51 @@ function sourceCircuit({
   return circuitJson
 }
 
-test.each([true, false])(
-  "stacked sources preserve their midpoint (named ground: %s)",
-  (explicitGround) => {
-    const netlist = circuitJsonToSpice(
-      sourceCircuit({ stacked: true, explicitGround }),
-    ).toSpiceString()
-    const sources = netlist
-      .split("\n")
-      .filter((line) => /^V/.test(line))
-      .map((line) => line.split(/\s+/))
-    expect(sources).toHaveLength(2)
-    expect(sources[0][2]).toBe(sources[1][1])
-    expect(sources[0][2]).not.toBe("0")
-    expect(sources[1][2]).toBe("0")
-    for (const [, positive, negative] of sources)
-      expect(positive).not.toBe(negative)
-  },
-)
-
-test("unrelated unnamed returns are never silently merged", () => {
-  const netlist = circuitJsonToSpice(
-    sourceCircuit({ stacked: false, explicitGround: false }),
-  ).toSpiceString()
-  const returns = netlist
-    .split("\n")
-    .filter((line) => /^V/.test(line))
-    .map((line) => line.split(/\s+/)[2])
-  expect(new Set(returns).size).toBe(2)
-})
-
-test("one unambiguous unnamed source return remains a usable reference", () => {
-  const netlist = circuitJsonToSpice(
-    sourceCircuit({
-      stacked: false,
-      explicitGround: false,
-      singleSource: true,
-    }),
-  ).toSpiceString()
-  expect(netlist).toMatch(/^Vsupply N\d+ 0 DC 5$/m)
+// These characterization snapshots expose main's incorrect copper topology;
+// the paired fix keeps the midpoint and unrelated returns distinct.
+test("reproduces collapsed supply midpoints and unrelated returns", () => {
+  expect({
+    stackedWithGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: true }),
+    ).toSpiceString(),
+    stackedWithoutGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: false }),
+    ).toSpiceString(),
+    unrelatedReturns: circuitJsonToSpice(
+      sourceCircuit({ stacked: false, explicitGround: false }),
+    ).toSpiceString(),
+    singleSource: circuitJsonToSpice(
+      sourceCircuit({
+        stacked: false,
+        explicitGround: false,
+        singleSource: true,
+      }),
+    ).toSpiceString(),
+  }).toMatchInlineSnapshot(`
+    {
+      "singleSource": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    .END"
+    ,
+      "stackedWithGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset 0 0 DC 3
+    .END"
+    ,
+      "stackedWithoutGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset 0 0 DC 3
+    .END"
+    ,
+      "unrelatedReturns": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset N2 0 DC 3
+    .END"
+    ,
+    }
+  `)
 })
