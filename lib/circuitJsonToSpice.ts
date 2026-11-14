@@ -127,16 +127,33 @@ export function circuitJsonToSpice(
     }
   }
 
-  for (const simSource of su(circuitJson).simulation_voltage_source.list()) {
-    const neg_port_id =
-      (simSource as any).negative_source_port_id ??
-      (simSource as any).terminal2_source_port_id
-    if (neg_port_id) {
-      const gnd_net = connMap.getNetConnectedToId(neg_port_id)
-      if (gnd_net) {
-        groundNets.add(gnd_net)
-      }
+  // Preserve explicitly named ground. A source's negative terminal may instead
+  // be a floating return or the midpoint between stacked supplies.
+  if (groundNets.size === 0) {
+    const positiveTerminalNets = new Set<ConnectivityNetId>()
+    const negativeTerminalNets = new Set<ConnectivityNetId>()
+    for (const simSource of su(circuitJson).simulation_voltage_source.list()) {
+      const positiveSourceId =
+        simSource.is_dc_source === false
+          ? simSource.terminal1_source_port_id
+          : simSource.positive_source_port_id
+      const negativeSourceId =
+        simSource.is_dc_source === false
+          ? simSource.terminal2_source_port_id
+          : simSource.negative_source_port_id
+      const positiveNet =
+        positiveSourceId && connMap.getNetConnectedToId(positiveSourceId)
+      const negativeNet =
+        negativeSourceId && connMap.getNetConnectedToId(negativeSourceId)
+      if (positiveNet) positiveTerminalNets.add(positiveNet)
+      if (negativeNet) negativeTerminalNets.add(negativeNet)
     }
+    const possibleGroundNets = [...negativeTerminalNets].filter(
+      (net) => !positiveTerminalNets.has(net),
+    )
+    // Retain the simple-source fallback only when it is unambiguous. Multiple
+    // unrelated returns must be named explicitly rather than shorted together.
+    if (possibleGroundNets.length === 1) groundNets.add(possibleGroundNets[0])
   }
 
   for (const groundNet of groundNets) {
