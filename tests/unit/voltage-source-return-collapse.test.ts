@@ -109,3 +109,50 @@ test("one unambiguous unnamed source return remains a usable reference", () => {
   ).toSpiceString()
   expect(netlist).toMatch(/^Vsupply N\d+ 0 DC 5$/m)
 })
+
+test("snapshots the corrected supply topology", () => {
+  expect({
+    stackedWithGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: true }),
+    ).toSpiceString(),
+    stackedWithoutGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: false }),
+    ).toSpiceString(),
+    unrelatedReturns: circuitJsonToSpice(
+      sourceCircuit({ stacked: false, explicitGround: false }),
+    ).toSpiceString(),
+    singleSource: circuitJsonToSpice(
+      sourceCircuit({
+        stacked: false,
+        explicitGround: false,
+        singleSource: true,
+      }),
+    ).toSpiceString(),
+  }).toMatchInlineSnapshot(`
+    {
+      "singleSource": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    .END"
+    ,
+      "stackedWithGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N2 N1 DC 5
+    Voffset N1 0 DC 3
+    .END"
+    ,
+      "stackedWithoutGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N2 N1 DC 5
+    Voffset N1 0 DC 3
+    .END"
+    ,
+      "unrelatedReturns": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N3 N1 DC 5
+    Voffset N4 N2 DC 3
+    .END"
+    ,
+    }
+  `)
+})
