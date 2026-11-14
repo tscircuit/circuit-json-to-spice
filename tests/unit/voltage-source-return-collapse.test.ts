@@ -12,30 +12,34 @@ function sourceCircuit({
   singleSource?: boolean
 }): AnyCircuitElement[] {
   const sourceNames = singleSource ? ["supply"] : ["supply", "offset"]
-  const circuitJson: AnyCircuitElement[] = sourceNames.flatMap((name) => [
-    {
-      type: "source_component",
-      source_component_id: name,
-      name,
-      ftype: "simple_voltage_source",
-    },
-    ...["pos", "neg"].map(
-      (terminal, index): AnyCircuitElement => ({
-        type: "source_port",
-        source_port_id: `${name}_${terminal}`,
+  const circuitJson: AnyCircuitElement[] = sourceNames.flatMap(
+    (name): AnyCircuitElement[] => [
+      {
+        type: "source_component",
         source_component_id: name,
-        name: terminal,
-        pin_number: index + 1,
-      }),
-    ),
-    {
-      type: "simulation_voltage_source",
-      simulation_voltage_source_id: name,
-      positive_source_port_id: `${name}_pos`,
-      negative_source_port_id: `${name}_neg`,
-      voltage: name === "supply" ? 5 : 3,
-    },
-  ])
+        name,
+        ftype: "simple_voltage_source",
+        voltage: name === "supply" ? 5 : 3,
+      },
+      ...["pos", "neg"].map(
+        (terminal, index): AnyCircuitElement => ({
+          type: "source_port",
+          source_port_id: `${name}_${terminal}`,
+          source_component_id: name,
+          name: terminal,
+          pin_number: index + 1,
+        }),
+      ),
+      {
+        type: "simulation_voltage_source",
+        simulation_voltage_source_id: name,
+        is_dc_source: true,
+        positive_source_port_id: `${name}_pos`,
+        negative_source_port_id: `${name}_neg`,
+        voltage: name === "supply" ? 5 : 3,
+      },
+    ],
+  )
   if (stacked) {
     circuitJson.push({
       type: "source_trace",
