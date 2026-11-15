@@ -85,9 +85,7 @@ test("emits custom spice subcircuit definition for diode with spicemodel", () =>
   ).toSpiceString()
 
   expect(spiceString).toContain(".subckt GE_DIODE anode cathode")
-  expect(spiceString).toContain(
-    "Xsimulation_spice_subcircuit_0 N2 N1 GE_DIODE",
-  )
+  expect(spiceString).toContain("Xsimulation_spice_subcircuit_0 N2 N1 GE_DIODE")
 })
 
 test.failing(
