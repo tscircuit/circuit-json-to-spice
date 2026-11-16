@@ -26,7 +26,10 @@ import { processSimulationVoltageSources } from "./processors/process-simulation
 import { processSimulationCurrentSources } from "./processors/process-simulation-current-sources"
 import { processSimulationExperiment } from "./processors/process-simulation-experiment"
 import { processSimulationOpAmps } from "./processors/process-simulation-op-amp"
-import { processSimulationSpiceSubcircuits } from "./processors/process-simulation-spice-subcircuits"
+import {
+  parseSpiceSubckt,
+  processSimulationSpiceSubcircuits,
+} from "./processors/process-simulation-spice-subcircuits"
 import type {
   ConnectivityNetId,
   SourcePortOrNetIdToSpiceNodeNameMap,
@@ -57,10 +60,10 @@ export function circuitJsonToSpice(
   const simulationSpiceSubcircuits = circuitJson.filter(
     (elm) => elm.type === "simulation_spice_subcircuit",
   ) as SimulationSpiceSubcircuit[]
-  const componentsWithSpiceSubcircuits = new Set(
-    simulationSpiceSubcircuits.map(
-      (subcircuit) => subcircuit.source_component_id,
-    ),
+  const componentsWithValidSpiceSubcircuits = new Set(
+    simulationSpiceSubcircuits
+      .filter((subcircuit) => parseSpiceSubckt(subcircuit.subcircuit_source))
+      .map((subcircuit) => subcircuit.source_component_id),
   )
   const simulationSwitchMap = new Map<string, SimulationSwitch>()
 
@@ -226,8 +229,10 @@ export function circuitJsonToSpice(
   for (const component of sourceComponents) {
     if (component.type !== "source_component") continue
 
-    // A custom SPICE subcircuit replaces the component's built-in model.
-    if (componentsWithSpiceSubcircuits.has(component.source_component_id)) {
+    // A parseable custom SPICE subcircuit replaces the component's built-in model.
+    if (
+      componentsWithValidSpiceSubcircuits.has(component.source_component_id)
+    ) {
       continue
     }
 

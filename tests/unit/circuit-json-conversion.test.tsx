@@ -470,6 +470,54 @@ D1 ANODE CATHODE DGEN
   )
 })
 
+test.each(["", ".model DGEN D", ".subckt RECTIFIER_DIODE"])(
+  "unparseable subcircuit %j preserves the built-in diode model",
+  (subcircuitSource) => {
+    const circuitJson: AnyCircuitElement[] = [
+      {
+        type: "source_component",
+        source_component_id: "source_component_diode",
+        name: "D1",
+        ftype: "simple_diode",
+      } as AnyCircuitElement,
+      {
+        type: "source_port",
+        source_port_id: "source_port_anode",
+        source_component_id: "source_component_diode",
+        name: "anode",
+        pin_number: 1,
+      } as AnyCircuitElement,
+      {
+        type: "source_port",
+        source_port_id: "source_port_cathode",
+        source_component_id: "source_component_diode",
+        name: "cathode",
+        pin_number: 2,
+      } as AnyCircuitElement,
+      {
+        type: "simulation_spice_subcircuit",
+        simulation_spice_subcircuit_id: "simulation_spice_subcircuit_0",
+        source_component_id: "source_component_diode",
+        spice_pin_to_source_port_map: {
+          ANODE: "source_port_anode",
+          CATHODE: "source_port_cathode",
+        },
+        subcircuit_source: subcircuitSource,
+      } as AnyCircuitElement,
+    ]
+
+    const netlist = circuitJsonToSpice(circuitJson)
+
+    expect(netlist.components).toHaveLength(1)
+    expect(netlist.toSpiceString()).toMatchInlineSnapshot(`
+      "* Circuit JSON to SPICE Netlist
+      .MODEL D D
+      DD1 N1 N2 D
+      .END"
+    `)
+  },
+)
+
 test("simulation spice subcircuit emits call pins from continued subckt header", () => {
   const drv8876LikeModel = `
 .SUBCKT DRV8876_TRANS CPH CPL EN_IN1 GND IMODE IPROPI nFAULT nSLEEP OUT1 OUT2 PGND PAD
