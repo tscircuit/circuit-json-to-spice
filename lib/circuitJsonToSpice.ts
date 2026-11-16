@@ -57,6 +57,11 @@ export function circuitJsonToSpice(
   const simulationSpiceSubcircuits = circuitJson.filter(
     (elm) => elm.type === "simulation_spice_subcircuit",
   ) as SimulationSpiceSubcircuit[]
+  const componentsWithSpiceSubcircuits = new Set(
+    simulationSpiceSubcircuits.map(
+      (subcircuit) => subcircuit.source_component_id,
+    ),
+  )
   const simulationSwitchMap = new Map<string, SimulationSwitch>()
 
   for (const simSwitch of simulationSwitches) {
@@ -220,6 +225,11 @@ export function circuitJsonToSpice(
   // Process each component
   for (const component of sourceComponents) {
     if (component.type !== "source_component") continue
+
+    // A custom SPICE subcircuit replaces the component's built-in model.
+    if (componentsWithSpiceSubcircuits.has(component.source_component_id)) {
+      continue
+    }
 
     const componentPorts = su(circuitJson)
       .source_port.list({
