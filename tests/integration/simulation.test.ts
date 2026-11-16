@@ -272,3 +272,110 @@ test("simulation switch drives square wave", async () => {
     ]
   `)
 })
+
+test("simulate three-pin potentiometer voltage divider across wiper positions", async () => {
+  const runPotSim = async (wiperPosition: number, taper = "linear") => {
+    const circuitJson: AnyCircuitElement[] = [
+      {
+        type: "source_component",
+        source_component_id: "RV1",
+        name: "RV1",
+        ftype: "simple_potentiometer",
+        max_resistance: 10000,
+        pin_variant: "three_pin",
+        sim_wiper_position: wiperPosition,
+        taper,
+      } as unknown as AnyCircuitElement,
+      {
+        type: "source_net",
+        source_net_id: "net_vin",
+        name: "VIN",
+        member_source_group_ids: [],
+      } as AnyCircuitElement,
+      {
+        type: "source_net",
+        source_net_id: "net_wiper",
+        name: "WIPER",
+        member_source_group_ids: [],
+      } as AnyCircuitElement,
+      {
+        type: "source_net",
+        source_net_id: "net_gnd",
+        name: "GND",
+        member_source_group_ids: [],
+      } as AnyCircuitElement,
+      {
+        type: "source_port",
+        source_port_id: "RV1_pin1",
+        source_component_id: "RV1",
+        name: "pin1",
+        pin_number: 1,
+      } as AnyCircuitElement,
+      {
+        type: "source_port",
+        source_port_id: "RV1_pin2",
+        source_component_id: "RV1",
+        name: "pin2",
+        pin_number: 2,
+      } as AnyCircuitElement,
+      {
+        type: "source_port",
+        source_port_id: "RV1_pin3",
+        source_component_id: "RV1",
+        name: "pin3",
+        pin_number: 3,
+      } as AnyCircuitElement,
+      {
+        type: "source_trace",
+        source_trace_id: "trace_vin",
+        connected_source_port_ids: ["RV1_pin1"],
+        connected_source_net_ids: ["net_vin"],
+      } as AnyCircuitElement,
+      {
+        type: "source_trace",
+        source_trace_id: "trace_wiper",
+        connected_source_port_ids: ["RV1_pin2"],
+        connected_source_net_ids: ["net_wiper"],
+      } as AnyCircuitElement,
+      {
+        type: "source_trace",
+        source_trace_id: "trace_gnd",
+        connected_source_port_ids: ["RV1_pin3"],
+        connected_source_net_ids: ["net_gnd"],
+      } as AnyCircuitElement,
+      {
+        type: "simulation_voltage_probe",
+        simulation_voltage_probe_id: "probe_wiper",
+        signal_input_source_net_id: "net_wiper",
+        name: "VWIPER",
+      } as AnyCircuitElement,
+    ]
+
+    const netlist = circuitJsonToSpice(circuitJson)
+    const lines = netlist.toSpiceString().split("\n")
+    lines.pop() // remove .END
+    const r1Line = lines.find((line) => line.startsWith("RRV1_1 "))!
+    const vinNode = r1Line.trim().split(/\s+/)[1]
+    lines.push(`V1 ${vinNode} 0 10`)
+    lines.push(".op")
+    lines.push(".END")
+
+    const sim = new Simulation()
+    await sim.start()
+    sim.setNetList(lines.join("\n"))
+    const result = await sim.runSim()
+    const wiperEntry = result.data.find(
+      (entry) => entry.name.toLowerCase() === "v(vwiper)",
+    )
+    if (!wiperEntry) throw new Error("v(vwiper) missing from simulation output")
+    return Number((wiperEntry.values[0] as number).toFixed(4))
+  }
+
+  // With 10V at pin1 and 0V at pin3: V(wiper) = 10 * R2 / (R1 + R2)
+  expect(await runPotSim(0)).toBe(10)
+  expect(await runPotSim(0.25)).toBe(7.5)
+  expect(await runPotSim(0.5)).toBe(5)
+  expect(await runPotSim(1)).toBe(0)
+  expect(await runPotSim(0.5, "log")).toBe(9)
+  expect(await runPotSim(0.5, "antilog")).toBe(1)
+})

@@ -344,6 +344,7 @@ test.each([
   { ftype: "simple_diode" },
   { ftype: "simple_led" },
   { ftype: "simple_resistor", resistance: 1000 },
+  { ftype: "simple_potentiometer", max_resistance: 10000 },
   { ftype: "simple_capacitor", capacitance: 0.000001 },
   { ftype: "simple_inductor", inductance: 0.001 },
   { ftype: "simple_switch" },
