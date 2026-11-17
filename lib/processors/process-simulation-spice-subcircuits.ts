@@ -2,33 +2,17 @@ import type { SimulationSpiceSubcircuit } from "circuit-json"
 import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { SubcircuitCallCommand } from "lib/spice-commands"
+import { parseSpiceNetlist } from "spicets"
 
 export function parseSpiceSubckt(
   source: string,
 ): { modelName: string; pinNames: string[] } | null {
-  const logicalLines: string[] = []
-
-  for (const physicalLine of source.split(/\r?\n/)) {
-    const trimmedLine = physicalLine.trim()
-
-    if (/^\+/.test(trimmedLine) && logicalLines.length > 0) {
-      logicalLines[logicalLines.length - 1] += ` ${trimmedLine.slice(1).trim()}`
-      continue
-    }
-
-    logicalLines.push(trimmedLine)
+  const subckt = parseSpiceNetlist(source).subckts[0]
+  if (!subckt || subckt.pins.length === 0) return null
+  return {
+    modelName: subckt.name,
+    pinNames: subckt.pins.map((pin) => pin.name),
   }
-
-  const line = logicalLines.find((line) => /^\.subckt\s+/i.test(line))
-
-  if (!line) return null
-
-  const tokens = line.split(/\s+/)
-  const modelName = tokens[1]
-  const pinNames = tokens.slice(2)
-
-  if (!modelName || pinNames.length === 0) return null
-  return { modelName, pinNames }
 }
 
 export function processSimulationSpiceSubcircuits(
