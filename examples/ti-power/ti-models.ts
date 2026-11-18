@@ -84,11 +84,11 @@ export const bundleTiModels = async (spice: string): Promise<string> => {
     ])
     const definition = [...netlist.models.entries()][0]
     if (!definition) throw new Error(`Could not export ${part}`)
-    bundledSource = bundledSource.replace(include[0], () => definition[1])
     bundledSource = bundledSource.replace(
       new RegExp(`^(X[^\\r\\n]*\\s)${entry.name}(?=\\s|$)`, "gm"),
       (_, instance) => `${instance}${definition[0]}`,
     )
+    bundledSource = bundledSource.replace(include[0], () => definition[1])
   }
   return bundledSource
 }
