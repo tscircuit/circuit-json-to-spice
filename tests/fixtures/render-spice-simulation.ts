@@ -1,4 +1,5 @@
-import { createNgspiceSpiceEngine } from "@tscircuit/ngspice-spice-engine"
+import { spawnSync } from "node:child_process"
+import { join } from "node:path"
 import type { CircuitJson } from "circuit-json"
 import {
   convertCircuitJsonToSchematicSimulationSvg,
@@ -15,11 +16,24 @@ export const renderSpiceSimulation = async ({
   name: string
 }): Promise<string> => {
   const simulation_experiment_id = "snapshot_experiment"
-  const engine = await createNgspiceSpiceEngine()
   let simulationResultCircuitJson: CircuitJson
   try {
-    simulationResultCircuitJson = (await engine.simulate(spice))
-      .simulationResultCircuitJson
+    // The WASM runtime shares state within a process, so each circuit gets a
+    // fresh runtime regardless of Bun's test-file order.
+    const execution = spawnSync(
+      process.execPath,
+      [join(import.meta.dir, "run-ngspice-simulation.ts")],
+      { input: spice, encoding: "utf8", timeout: 10_000 },
+    )
+    if (execution.status !== 0) {
+      throw new Error(execution.stderr.trim() || "ngspice worker failed")
+    }
+    const result: {
+      simulationResultCircuitJson: CircuitJson
+      error?: string
+    } = JSON.parse(execution.stdout.trim().split("\n").at(-1)!)
+    if (result.error) throw new Error(result.error)
+    simulationResultCircuitJson = result.simulationResultCircuitJson
   } catch (error) {
     if (
       !(error instanceof Error) ||
