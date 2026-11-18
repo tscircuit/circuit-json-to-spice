@@ -30,17 +30,19 @@ test("an RC transient can request its 5-V initial DC operating point", async () 
     </board>,
   )
   await circuit.renderUntilSettled()
+  // Keep the requested option in the fixture before Circuit JSON supports it.
+  const experiment = {
+    type: "simulation_experiment",
+    simulation_experiment_id: "simulation_experiment_0",
+    name: "5-V RC steady state",
+    experiment_type: "spice_transient_analysis",
+    time_per_step: 0.01,
+    end_time_ms: 1,
+    calculate_initial_operating_point: true,
+  } as const
   const spice = circuitJsonToSpice([
     ...circuit.getCircuitJson(),
-    {
-      type: "simulation_experiment",
-      simulation_experiment_id: "simulation_experiment_0",
-      name: "5-V RC steady state",
-      experiment_type: "spice_transient_analysis",
-      time_per_step: 0.01,
-      end_time_ms: 1,
-      calculate_initial_operating_point: true,
-    },
+    experiment,
   ]).toSpiceString()
 
   expect(
