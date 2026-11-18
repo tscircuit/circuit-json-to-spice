@@ -108,7 +108,7 @@ const buildAnalysisCommand = (simulationExperiment: SimulationExperiment) => {
       ...(startTimeSeconds > 0
         ? { start: formatNumberForSpice(startTimeSeconds) }
         : {}),
-      uic: true,
+      uic: simulationExperiment.calculate_initial_operating_point !== true,
     })
   }
 
