@@ -11,7 +11,8 @@ The runner downloads the original TI libraries, verifies their SHA-256 hashes,
 bundles them through this exporter, and runs the ngspice WASM adapter. Vendor
 libraries and generated netlists/results remain in `.cache/ti-power`.
 Each simulation runs in a separate process with a ten-minute limit. The buck and
-four-stage tree can take several minutes.
+four-stage tree can take several minutes. Set `TI_POWER_TIMEOUT_MS` to change the
+process limit. A timeout is recorded as an incomplete failure, never a pass.
 
 | Case | Test bench | Basic acceptance |
 | --- | --- | --- |

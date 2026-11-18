@@ -11,30 +11,39 @@ const selected = process.argv[2] ?? "all"
 const selectedCases = selected === "all" ? Object.keys(cases) : [selected]
 
 if (!process.argv.includes("--child")) {
+  const timeoutMs = Number(process.env.TI_POWER_TIMEOUT_MS ?? 600_000)
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error("TI_POWER_TIMEOUT_MS must be a positive number")
+  }
   for (const name of selectedCases) {
     if (!cases[name]) throw new Error(`Unknown simulation: ${name}`)
+    const summaryPath = join(
+      import.meta.dir,
+      "../../.cache/ti-power",
+      `${name}.summary.json`,
+    )
+    await Bun.write(summaryPath, JSON.stringify({ completed: false }))
     const child = Bun.spawn(
       [process.execPath, import.meta.path, name, "--child"],
       {
         stdout: "inherit",
         stderr: "inherit",
-        timeout: 600_000,
+        timeout: timeoutMs,
       },
     )
     const exitCode = await child.exited
-    if (exitCode) {
+    const summary: { completed?: boolean } = await Bun.file(summaryPath).json()
+    if (exitCode !== 0 || child.signalCode || !summary.completed) {
       process.exitCode = 1
       const failure = {
         simulation: name,
+        completed: false,
         passed: false,
         exitCode,
         signal: child.signalCode,
-        message: "Simulation failed or exceeded the ten-minute process limit.",
+        message: "Simulation failed or exceeded the configured process limit.",
       }
-      await Bun.write(
-        join(import.meta.dir, "../../.cache/ti-power", `${name}.summary.json`),
-        JSON.stringify(failure, null, 2),
-      )
+      await Bun.write(summaryPath, JSON.stringify(failure, null, 2))
       console.error(JSON.stringify(failure, null, 2))
     }
   }
@@ -72,6 +81,7 @@ if (!process.argv.includes("--child")) {
     voltages.every((voltage) => voltage.withinTwoPercent)
   const summary = {
     simulation: selected,
+    completed: true,
     seconds: (performance.now() - started) / 1000,
     passed,
     voltages,
