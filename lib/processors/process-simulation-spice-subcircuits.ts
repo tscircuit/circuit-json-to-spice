@@ -30,10 +30,19 @@ export function processSimulationSpiceSubcircuits(
     if (!parsedSubckt) continue
 
     const { modelName, pinNames } = parsedSubckt
-
-    if (!netlist.models.has(modelName)) {
-      netlist.models.set(modelName, simulationSpiceSubcircuit.subcircuit_source)
-    }
+    const libraryName = `library_${simulationSpiceSubcircuit.simulation_spice_subcircuit_id}`
+    // Each imported library owns its helper subcircuits, device models, and
+    // parameters. Nested SPICE scopes prevent definitions from other chips
+    // with the same names from silently changing this model's behavior.
+    netlist.models.set(
+      libraryName,
+      [
+        `.SUBCKT ${libraryName} ${pinNames.join(" ")}`,
+        simulationSpiceSubcircuit.subcircuit_source,
+        `Xentry ${pinNames.join(" ")} ${modelName}`,
+        `.ENDS ${libraryName}`,
+      ].join("\n"),
+    )
 
     const nodes = pinNames.map((spicePinName) => {
       const sourcePortId =
@@ -44,7 +53,7 @@ export function processSimulationSpiceSubcircuits(
     const subcircuitCallCommand = new SubcircuitCallCommand({
       name: simulationSpiceSubcircuit.simulation_spice_subcircuit_id,
       nodes,
-      subcircuitName: modelName,
+      subcircuitName: libraryName,
     })
 
     netlist.addComponent(

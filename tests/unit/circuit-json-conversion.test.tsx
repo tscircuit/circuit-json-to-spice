@@ -461,12 +461,17 @@ D1 ANODE CATHODE DGEN
   const spiceString = netlist.toSpiceString()
 
   expect(netlist.components).toHaveLength(2)
-  expect([...netlist.models.values()]).toEqual([rectifierDiodeModel])
+  expect([...netlist.models.values()]).toEqual([
+    `.SUBCKT library_simulation_spice_subcircuit_0 ANODE CATHODE
+${rectifierDiodeModel}
+Xentry ANODE CATHODE RECTIFIER_DIODE
+.ENDS library_simulation_spice_subcircuit_0`,
+  ])
   expect(spiceString).toContain("RR1 VP_OUT 0 1K")
   expect(spiceString).toContain(".subckt RECTIFIER_DIODE ANODE CATHODE")
   expect(spiceString).toContain(".ends RECTIFIER_DIODE")
   expect(spiceString).toContain(
-    "Xsimulation_spice_subcircuit_0 VP_IN VP_OUT RECTIFIER_DIODE",
+    "Xsimulation_spice_subcircuit_0 VP_IN VP_OUT library_simulation_spice_subcircuit_0",
   )
 })
 
@@ -596,6 +601,6 @@ R1 VM GND 1Meg
   const spiceString = netlist.toSpiceString()
 
   expect(spiceString).toContain(
-    "Xsimulation_spice_subcircuit_0 N1 N2 N3 0 N4 N5 N6 N7 N8 N9 0 N10 N11 N12 N13 N14 N15 DRV8876_TRANS",
+    "Xsimulation_spice_subcircuit_0 N1 N2 N3 0 N4 N5 N6 N7 N8 N9 0 N10 N11 N12 N13 N14 N15 library_simulation_spice_subcircuit_0",
   )
 })
