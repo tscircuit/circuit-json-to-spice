@@ -32,11 +32,7 @@ if (!process.argv.includes("--child")) {
         message: "Simulation failed or exceeded the ten-minute process limit.",
       }
       await Bun.write(
-        join(
-          import.meta.dir,
-          "../../../.cache/ti-power",
-          `${name}.summary.json`,
-        ),
+        join(import.meta.dir, "../../.cache/ti-power", `${name}.summary.json`),
         JSON.stringify(failure, null, 2),
       )
       console.error(JSON.stringify(failure, null, 2))
@@ -47,7 +43,7 @@ if (!process.argv.includes("--child")) {
   const spice = await bundleTiModels(
     await Bun.file(join(import.meta.dir, `${selected}.cir`)).text(),
   )
-  const outputPath = join(import.meta.dir, "../../../.cache/ti-power", selected)
+  const outputPath = join(import.meta.dir, "../../.cache/ti-power", selected)
   await Bun.write(`${outputPath}.cir`, spice)
   const engine = await createNgspiceSpiceEngine()
   const { simulationResultCircuitJson } = await engine.simulate(spice)

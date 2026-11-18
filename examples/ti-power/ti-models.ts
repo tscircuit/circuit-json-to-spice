@@ -46,7 +46,7 @@ export const bundleTiModels = async (spice: string): Promise<string> => {
     if (!model) throw new Error(`Unknown TI model: ${part}`)
     const archivePath = join(
       import.meta.dir,
-      "../../../.cache/ti-power",
+      "../../.cache/ti-power",
       `${part}.zip`,
     )
     if (!(await Bun.file(archivePath).exists())) {
