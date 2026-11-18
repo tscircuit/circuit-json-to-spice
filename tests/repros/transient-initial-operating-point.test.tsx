@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { Circuit } from "tscircuit"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
-import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
+import { renderSpiceSimulation } from "tests/fixtures/render-spice-simulation"
 
 test("an RC transient can request its 5-V initial DC operating point", async () => {
   const circuit = new Circuit()
@@ -30,10 +30,6 @@ test("an RC transient can request its 5-V initial DC operating point", async () 
     </board>,
   )
   await circuit.renderUntilSettled()
-  expect(
-    convertCircuitJsonToSchematicSvg(circuit.getCircuitJson()),
-  ).toMatchSvgSnapshot(import.meta.path)
-
   const spice = circuitJsonToSpice([
     ...circuit.getCircuitJson(),
     {
@@ -47,6 +43,11 @@ test("an RC transient can request its 5-V initial DC operating point", async () 
     },
   ]).toSpiceString()
 
-  expect(spice).toContain(".tran 0.00001 0.001")
-  expect(spice).not.toContain("UIC")
-})
+  expect(
+    await renderSpiceSimulation({
+      circuitJson: circuit.getCircuitJson(),
+      spice,
+      name: "Requested initial DC operating point: OUT should start at 5 V",
+    }),
+  ).toMatchSvgSnapshot(import.meta.path)
+}, 15_000)

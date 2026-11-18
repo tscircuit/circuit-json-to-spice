@@ -18,6 +18,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@tscircuit/circuit-json-util": "^0.0.131",
+    "@tscircuit/ngspice-spice-engine": "^0.0.22",
     "@types/bun": "^1.2.15",
     "bun-match-svg": "^0.0.13",
     "circuit-json": "^0.0.553",
