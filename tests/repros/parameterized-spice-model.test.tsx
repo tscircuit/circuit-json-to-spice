@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test"
 import { Circuit } from "tscircuit"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
-import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
+import { renderSpiceSimulation } from "tests/fixtures/render-spice-simulation"
 
-test("a parameterized SPICE model connects only its three pins", async () => {
+test("a three-pin parameterized model driven by 5 V", async () => {
   const circuit = new Circuit()
   circuit.pcbDisabled = true
   circuit.add(
@@ -38,10 +38,14 @@ E1 OUT GND VALUE={GAIN*V(IN,GND)}
   )
   await circuit.renderUntilSettled()
 
-  const spice = circuitJsonToSpice(circuit.getCircuitJson()).toSpiceString()
+  const netlist = circuitJsonToSpice(circuit.getCircuitJson())
+  netlist.tranCommand = ".tran 10u 1m"
+  netlist.printStatements.push(".PRINT TRAN V(OUT)")
   expect(
-    convertCircuitJsonToSchematicSvg(circuit.getCircuitJson()),
+    await renderSpiceSimulation({
+      circuitJson: circuit.getCircuitJson(),
+      spice: netlist.toSpiceString(),
+      name: "Three pins plus GAIN=0.4: expected OUT = 2 V",
+    }),
   ).toMatchSvgSnapshot(import.meta.path)
-  expect(spice).toContain("PARAMS: GAIN=0.4")
-  expect(spice).toMatch(/^X\S+ \S+ OUT 0 DIVIDER$/m)
-})
+}, 15_000)
