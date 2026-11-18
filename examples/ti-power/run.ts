@@ -22,7 +22,25 @@ if (!process.argv.includes("--child")) {
       },
     )
     const exitCode = await child.exited
-    if (exitCode) process.exitCode = 1
+    if (exitCode) {
+      process.exitCode = 1
+      const failure = {
+        simulation: name,
+        passed: false,
+        exitCode,
+        signal: child.signalCode,
+        message: "Simulation failed or exceeded the ten-minute process limit.",
+      }
+      await Bun.write(
+        join(
+          import.meta.dir,
+          "../../../.cache/ti-power",
+          `${name}.summary.json`,
+        ),
+        JSON.stringify(failure, null, 2),
+      )
+      console.error(JSON.stringify(failure, null, 2))
+    }
   }
 } else {
   const started = performance.now()
