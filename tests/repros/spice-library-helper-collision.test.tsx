@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test"
-import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
-import { Simulation } from "eecircuit-engine"
 import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
 import { Circuit } from "tscircuit"
+import { renderSpiceSimulation } from "tests/fixtures/render-spice-simulation"
 
 test("cascaded model libraries retain their own helper subcircuits", async () => {
   const circuit = new Circuit()
@@ -54,24 +53,14 @@ E1 OUT GND IN GND 0.25
     </board>,
   )
   await circuit.renderUntilSettled()
-  expect(
-    convertCircuitJsonToSchematicSvg(circuit.getCircuitJson()),
-  ).toMatchSvgSnapshot(import.meta.path)
-
   const netlist = circuitJsonToSpice(circuit.getCircuitJson())
   netlist.tranCommand = ".tran 1u 2u"
-  const simulation = new Simulation()
-  await simulation.start()
-  simulation.setNetList(netlist.toSpiceString())
-  const result = await simulation.runSim()
-  if (result.dataType !== "real") throw new Error("Expected real voltages")
-
-  expect(result.data.find((field) => field.name === "v(mid)")?.values[0]).toBeCloseTo(
-    6,
-    6,
-  )
-  expect(result.data.find((field) => field.name === "v(out)")?.values[0]).toBeCloseTo(
-    1.5,
-    6,
-  )
+  netlist.printStatements.push(".PRINT TRAN V(MID) V(OUT)")
+  expect(
+    await renderSpiceSimulation({
+      circuitJson: circuit.getCircuitJson(),
+      spice: netlist.toSpiceString(),
+      name: "Independent libraries: MID = 6 V, OUT should equal 1.5 V",
+    }),
+  ).toMatchSvgSnapshot(import.meta.path)
 }, 15_000)
