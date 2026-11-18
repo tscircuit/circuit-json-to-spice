@@ -34,3 +34,10 @@ The small automated regressions are in `tests/repros/spice-library-helper-collis
 and the ngspice adapter's PSpice fixtures. The full benches intentionally expose
 the adapter's reversed-switch and `Adc` compatibility failures as well as shared
 helper-library collisions; all corresponding fixes are required for validation.
+
+Recorded on 2026-11-18 using the local adapter and exporter PR builds: the
+linear case reached 2.79995 V and the buck reached 3.33045 V at 5 ms. The complete
+four-regulator tree did not finish within ten minutes. Native ngspice also
+advanced extremely slowly around 0.766 ms; adding 2 mΩ to the external capacitors
+did not resolve that behavior. The library-collision regressions pass, but the
+full-tree transient remains unvalidated and needs further model-convergence work.
