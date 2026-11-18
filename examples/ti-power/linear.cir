@@ -1,0 +1,13 @@
+* TPS7A2028: 3.1 V input, 2.8 V output, 1 mA to 300 mA load steps
+.include TPS7A20
+.param V_out=2.8
+.temp 25
+V1 vin 0 PWL(0 0 100u 0 110u 3.1)
+XU1 vin 0 vin nc out TPS7A20_ADJ_TRANS
+C1 vin 0 1u
+C2 out 0 1u
+Iload out 0 PWL(0 0 1m 0 1.001m 1m 2m 1m 2.001m 300m 3.001m 300m 3.002m 1m)
+.SAVE V(out)
+.PRINT TRAN V(out)
+.tran 0.1u 5m 0 0.1u UIC
+.end

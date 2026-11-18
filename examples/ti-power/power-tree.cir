@@ -1,0 +1,36 @@
+* TIDA-010011 module branch: 24 V -> 12 V -> 5 V -> 1.2 V / 1.8 V
+.include LMZM33602
+.include TPS82130
+.include TPS82084
+.include TPS82085
+.temp 25
+V1 vin 0 PWL(0 0 1m 24)
+X1 0 dnc1 dnc2 vin fb1 0 0 0 0 pg1 rt sw sw sw vin v12 v12 v12 LMZM33602_TRANS
+Rrt rt 0 44.2k
+R1t v12 fb1 110k
+R1b fb1 0 10k
+C1in vin 0 10u
+C1out v12 0 44u
+X2 v12 0 fb2 0 pg2 ss v12 v5 v5 TPS82130_TRANS
+R2t v5 fb2 105k
+R2b fb2 0 20k
+Css ss 0 3.3n
+C2in v12 0 10u
+C2out v5 0 22u
+X3 v5 fb3 0 0 pg3 v5 v5 v1v2 0 TPS82084_TRANS
+X4 v5 fb4 0 0 pg4 v5 v5 v1v8 0 TPS82085_TRANS
+R3t v1v2 fb3 50k
+R3b fb3 0 100k
+R4t v1v8 fb4 125k
+R4b fb4 0 100k
+C3in v5 0 10u
+C4in v5 0 10u
+C3out v1v2 0 22u
+C4out v1v8 0 22u
+I3 v1v2 0 PWL(0 0 5m 0 5.01m .5 10m .5 10.001m 1 15m 1 15.001m .5 20m .5)
+I4 v1v8 0 PWL(0 0 5m 0 5.01m .75 10m .75 10.001m 1.5 15m 1.5 15.001m .75 20m .75)
+.options method=gear reltol=0.003 rshunt=1e12 interp
+.SAVE V(v12) V(v5) V(v1v2) V(v1v8)
+.PRINT TRAN V(v12) V(v5) V(v1v2) V(v1v8)
+.tran 1u 20m 0 100n UIC
+.end
