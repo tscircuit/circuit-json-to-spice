@@ -21,7 +21,7 @@
     "@tscircuit/ngspice-spice-engine": "^0.0.24",
     "@types/bun": "^1.2.15",
     "bun-match-svg": "^0.0.13",
-    "circuit-json": "^0.0.553",
+    "circuit-json": "https://pkg.pr.new/tscircuit/circuit-json@47fd9b8d57dc487a812386a0326ecae4c7b0708e",
     "circuit-to-svg": "^0.0.275",
     "eecircuit-engine": "^1.5.2",
     "format-si-unit": "^0.0.12",
