@@ -25,7 +25,7 @@ const selectedCases =
   selected === "all" ? ["linear", "buck", "power-tree"] : [selected]
 
 if (!process.argv.includes("--child")) {
-  const timeoutMs = Number(process.env.TI_POWER_TIMEOUT_MS ?? 600_000)
+  const timeoutMs = Number(process.env.TI_POWER_TIMEOUT_MS ?? 900_000)
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error("TI_POWER_TIMEOUT_MS must be a positive number")
   }
