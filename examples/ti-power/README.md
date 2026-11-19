@@ -7,6 +7,48 @@ bun examples/ti-power/run.ts all
 # Or select linear, buck, or power-tree.
 ```
 
+The latest Desktop-generated test benches are also available:
+
+```sh
+bun examples/ti-power/run.ts desktop-linear
+bun examples/ti-power/run.ts desktop-linear-startup
+bun examples/ti-power/run.ts desktop-buck
+bun examples/ti-power/run.ts desktop-buck-loadstep
+bun examples/ti-power/run.ts desktop-buck-ripple
+bun examples/ti-power/run.ts desktop-power-tree
+bun examples/ti-power/run.ts lmzm-startup
+```
+
+These preserve the generated external circuit and source conditions. Native
+`.control` blocks are expressed as batch analysis directives, and model libraries
+use the existing hash-verified download and exporter isolation. `.SAVE` restricts
+stored vectors to the requested outputs; `interp` limits storage to the output
+grid for the larger switching cases. Neither changes the internal solver step
+(see the [ngspice manual](https://ngspice.sourceforge.io/docs/ngspice-manual.pdf)).
+
+The Desktop power-tree case intentionally retains the generated `SS=1` settings,
+separate analog-ground net, and current loads at startup. It reproduces an
+unvalidated test bench; it is not a recommended reference design. Compare it with
+the original `power-tree` case before attributing a failure to the exporter.
+
+`lmzm-startup` isolates the upstream module with a 24 V ramp and a 24 Ω load.
+It uses trapezoidal integration to expose the startup convergence failure; the
+Gear version of the same bench advances extremely slowly instead. Native
+ngspice 47 also reproduces this behavior with the adapter's compatibility
+rewrites applied. This is an unresolved model/solver interaction, not an
+established exporter defect.
+
+The `AGND` connection in the original `power-tree` and `lmzm-startup` benches is
+a simulation return for this macro-model. The [TI model](https://www.ti.com/lit/zip/snvmbf8)
+does not implement the hardware's internal AGND-to-PGND connection. The
+[hardware datasheet](https://www.ti.com/lit/ds/symlink/lmzm33602.pdf) says to keep
+those pins separate externally; do not copy the simulation return into a PCB.
+
+The small CI-passing visual reproduction of TI's ignored `.IC V(SS_TR )=0`
+syntax is in [ngspice adapter PR #42](https://github.com/tscircuit/ngspice-spice-engine/pull/42).
+Its [stacked fix](https://github.com/tscircuit/ngspice-spice-engine/pull/43)
+normalizes voltage-node whitespace without changing the vendor model files.
+
 The runner downloads the original TI libraries, verifies their SHA-256 hashes,
 bundles them through this exporter, and runs the ngspice WASM adapter. Vendor
 libraries and generated netlists/results remain in `.cache/ti-power`.
@@ -41,3 +83,41 @@ four-regulator tree did not finish within ten minutes. Native ngspice also
 advanced extremely slowly around 0.766 ms; adding 2 mΩ to the external capacitors
 did not resolve that behavior. The library-collision regressions pass, but the
 full-tree transient remains unvalidated and needs further model-convergence work.
+
+## Native comparison on 2026-11-19
+
+The same transformed netlists were run in native ngspice 47 and the adapter's
+ngspice 46+ WASM build (`@tscircuit/eecircuit-engine` 1.7.6), with adapter PR #43
+applied. Both used PSpice compatibility mode. Neither netlist requests KLU. The native
+input added only ASCII raw-file output. This compares the two builds; it does
+not independently validate the PSpice translation against hardware.
+
+| Bench | Native | WASM | Observation |
+| --- | --- | --- | --- |
+| Desktop LDO load step | 2.799952 V final | 2.799952 V final | Aligned waveform difference below 1.2e-12 V |
+| Desktop buck startup, 1.1 Ω | 3.326531 V | 3.328807 V | Final 100 µs means differ by 2.28 mV; instantaneous waveform differences reach 98 mV |
+| Desktop buck load step | Aborts at 5.86272 ms | Aborts at 1.65127 ms | The complete transient remains unvalidated |
+| Original power tree, `method=trap` | Aborts at 0.765744 ms | Aborts at 0.765744 ms | Same timestep-too-small failure |
+
+Native data was linearly interpolated onto the WASM output grid. Buck means
+use that common grid; single final samples are not used as a ripple metric.
+
+For hardware comparison, the [TPS7A20 datasheet](https://www.ti.com/lit/ds/symlink/tps7a20.pdf)
+page 17 provides measured load transients. An additional 0–300 mA, 1 µs-edge
+run matches those nominal load conditions: both simulators predict about 46 mV
+of droop, substantially less than the roughly 190 mV visible in Figure 5-55.
+Agreement between simulators does not establish agreement with that measurement.
+
+The [TPS54320 EVM guide](https://www.ti.com/lit/pdf/slvu380) provides the
+startup, ripple, and load-step references in Figures 2-5, 2-7, and 2-9. Its
+startup input ramp differs from the Desktop bench's 10 µs ramp. The
+[TIDA-010011 guide](https://www.ti.com/lit/pdf/tiduel1) page 37 documents the
+four-module chain and page 40, Table 9 gives individual module load measurements.
+Those measurements are useful targets once a full tree simulation completes.
+
+The CI snapshot in `tests/repros/ti-buck-settled-voltage.test.ts` isolates a
+second validation issue using the recorded final 100 µs of a completed buck
+load-step run. Its 3.37734 V final sample is outside the current check, although
+the window mean is 3.31880 V. The baseline snapshot records that phase-dependent
+rejection. It uses recorded simulation output, so CI does not download models
+or run the expensive complete TI bench.

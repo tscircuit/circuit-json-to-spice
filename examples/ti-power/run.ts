@@ -1,14 +1,23 @@
 import { createNgspiceSpiceEngine } from "@tscircuit/ngspice-spice-engine"
 import { join } from "node:path"
+import { getVoltageSummary } from "./get-voltage-summary"
 import { bundleTiModels } from "./ti-models"
 
 const cases: Record<string, Record<string, number>> = {
   linear: { out: 2.8 },
   buck: { out: 3.3 },
   "power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
+  "desktop-linear": { vout: 2.8 },
+  "desktop-linear-startup": { vout: 2.8 },
+  "desktop-buck": { out: 3.3 },
+  "desktop-buck-loadstep": { out: 3.3 },
+  "desktop-buck-ripple": { out: 3.3 },
+  "desktop-power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
+  "lmzm-startup": { v12: 12 },
 }
 const selected = process.argv[2] ?? "all"
-const selectedCases = selected === "all" ? Object.keys(cases) : [selected]
+const selectedCases =
+  selected === "all" ? ["linear", "buck", "power-tree"] : [selected]
 
 if (!process.argv.includes("--child")) {
   const timeoutMs = Number(process.env.TI_POWER_TIMEOUT_MS ?? 600_000)
@@ -64,17 +73,7 @@ if (!process.argv.includes("--child")) {
     .filter((graph) => graph.type === "simulation_transient_voltage_graph")
     .map((graph) => {
       const nominalVoltage = cases[selected][graph.name?.toLowerCase() ?? ""]
-      const finalVoltage = graph.voltage_levels.at(-1)
-      return {
-        name: graph.name,
-        nominalVoltage,
-        finalVoltage,
-        withinTwoPercent:
-          finalVoltage !== undefined &&
-          Number.isFinite(finalVoltage) &&
-          nominalVoltage !== undefined &&
-          Math.abs(finalVoltage - nominalVoltage) <= nominalVoltage * 0.02,
-      }
+      return getVoltageSummary({ graph, nominalVoltage })
     })
   const passed =
     voltages.length === Object.keys(cases[selected]).length &&

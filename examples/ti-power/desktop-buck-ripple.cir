@@ -1,0 +1,27 @@
+* TPS54320 startup 12V 25C
+.include TPS54320
+V1 vin 0 PWL(0 0 10u 12)
+XU1 boot comp en 0 0 0 ph ph vin vin pg rt ss vin fb TPS54320_TRANS
+Rrt rt 0 100k
+Ren1 vin en 511k
+Ren2 en 0 100k
+Css ss 0 10n
+Cboot boot ph 100n
+L1 ph lx 6.8u
+Rl lx out 26m
+Cout cx 0 47u
+Resr out cx 4m
+Cin vin 0 9.4u
+Rtop out fb 31.6k
+Rbot fb 0 10k
+Rc comp cc 1.78k
+Cc cc 0 15n
+Cp comp 0 330p
+Rpg out pg 100k
+Iload out 0 PWL(0 0 4m 3)
+.temp 25
+.options reltol=0.003 interp
+.SAVE V(out)
+.PRINT TRAN V(out)
+.tran 50n 8m
+.end

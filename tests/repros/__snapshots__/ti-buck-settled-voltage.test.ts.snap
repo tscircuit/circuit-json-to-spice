@@ -1,0 +1,10 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TI buck regulation with a high final switching sample 1`] = `
+{
+  "finalVoltage": 3.3773416334477666,
+  "name": "out",
+  "nominalVoltage": 3.3,
+  "withinTwoPercent": false,
+}
+`;

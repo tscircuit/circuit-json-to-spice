@@ -1,0 +1,13 @@
+* Desktop TPS7A2028 load-step reproduction
+.include TPS7A20
+.param V_out=2.8
+.temp 25
+V1 vin 0 PWL(0 0 1u 3.1)
+XU1 vin 0 vin nc vout TPS7A20_ADJ_TRANS
+C1 vin 0 1u
+C2 vout 0 1u
+Iload vout 0 PWL(0 0 10u 1m 5m 1m 5.001m 300m 6m 300m 6.001m 1m 7m 1m)
+.SAVE V(vout)
+.PRINT TRAN V(vout)
+.tran 0.1u 7m
+.end

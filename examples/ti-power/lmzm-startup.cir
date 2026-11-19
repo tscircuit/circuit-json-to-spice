@@ -1,0 +1,16 @@
+* Isolate the upstream LMZM33602 startup from the four-stage tree
+.include LMZM33602
+.temp 25
+V1 vin 0 PWL(0 0 1m 24)
+X1 0 dnc1 dnc2 vin fb1 0 0 0 0 pg1 rt sw sw sw vin v12 v12 v12 LMZM33602_TRANS
+Rrt rt 0 44.2k
+R1t v12 fb1 110k
+R1b fb1 0 10k
+Cin vin 0 10u
+Cout v12 0 54u
+Rload v12 0 24
+.options method=trap reltol=0.003 interp
+.SAVE V(v12)
+.PRINT TRAN V(v12)
+.tran 1u 5m 0 100n UIC
+.end
