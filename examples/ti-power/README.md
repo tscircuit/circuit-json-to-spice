@@ -83,3 +83,34 @@ four-regulator tree did not finish within ten minutes. Native ngspice also
 advanced extremely slowly around 0.766 ms; adding 2 mΩ to the external capacitors
 did not resolve that behavior. The library-collision regressions pass, but the
 full-tree transient remains unvalidated and needs further model-convergence work.
+
+## Native comparison on 2026-11-19
+
+The same transformed netlists were run in native ngspice 47 and the adapter's
+ngspice 46+ WASM build (`@tscircuit/eecircuit-engine` 1.7.6), with adapter PR #43
+applied. Both used PSpice compatibility mode. Neither netlist requests KLU. The native
+input added only ASCII raw-file output. This compares the two builds; it does
+not independently validate the PSpice translation against hardware.
+
+| Bench | Native | WASM | Observation |
+| --- | --- | --- | --- |
+| Desktop LDO load step | 2.799952 V final | 2.799952 V final | Aligned waveform difference below 1.2e-12 V |
+| Desktop buck startup, 1.1 Ω | 3.326531 V | 3.328807 V | Final 100 µs means differ by 2.28 mV; instantaneous waveform differences reach 98 mV |
+| Desktop buck load step | Aborts at 5.86272 ms | Aborts at 1.65127 ms | The complete transient remains unvalidated |
+| Original power tree, `method=trap` | Aborts at 0.765744 ms | Aborts at 0.765744 ms | Same timestep-too-small failure |
+
+Native data was linearly interpolated onto the WASM output grid. Buck means
+use that common grid; single final samples are not used as a ripple metric.
+
+For hardware comparison, the [TPS7A20 datasheet](https://www.ti.com/lit/ds/symlink/tps7a20.pdf)
+page 17 provides measured load transients. An additional 0–300 mA, 1 µs-edge
+run matches those nominal load conditions: both simulators predict about 46 mV
+of droop, substantially less than the roughly 190 mV visible in Figure 5-55.
+Agreement between simulators does not establish agreement with that measurement.
+
+The [TPS54320 EVM guide](https://www.ti.com/lit/pdf/slvu380) provides the
+startup, ripple, and load-step references in Figures 2-5, 2-7, and 2-9. Its
+startup input ramp differs from the Desktop bench's 10 µs ramp. The
+[TIDA-010011 guide](https://www.ti.com/lit/pdf/tiduel1) page 37 documents the
+four-module chain and page 40, Table 9 gives individual module load measurements.
+Those measurements are useful targets once a full tree simulation completes.
