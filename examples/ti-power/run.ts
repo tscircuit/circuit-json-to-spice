@@ -1,4 +1,7 @@
-import { createNgspiceSpiceEngine } from "@tscircuit/ngspice-spice-engine"
+import {
+  createNgspiceSpiceEngine,
+  rewritePspiceCompatibilitySyntax,
+} from "@tscircuit/ngspice-spice-engine"
 import { join } from "node:path"
 import { getVoltageSummary } from "./get-voltage-summary"
 import { bundleTiModels } from "./ti-models"
@@ -14,6 +17,8 @@ const cases: Record<string, Record<string, number>> = {
   "desktop-buck-ripple": { out: 3.3 },
   "desktop-power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
   "lmzm-startup": { v12: 12 },
+  "desktop-3247-buck-startup": { n11: 3.3 },
+  "desktop-3247-buck-loadstep": { n11: 3.3 },
 }
 const selected = process.argv[2] ?? "all"
 const selectedCases =
@@ -64,6 +69,10 @@ if (!process.argv.includes("--child")) {
   )
   const outputPath = join(import.meta.dir, "../../.cache/ti-power", selected)
   await Bun.write(`${outputPath}.cir`, spice)
+  await Bun.write(
+    `${outputPath}.native.cir`,
+    rewritePspiceCompatibilitySyntax(spice),
+  )
   const engine = await createNgspiceSpiceEngine()
   const { simulationResultCircuitJson } = await engine.simulate(spice)
   await Bun.write(

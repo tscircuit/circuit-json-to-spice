@@ -136,3 +136,35 @@ Its final sample is 3.37734 V, mean is 3.31880 V, and peak-to-peak variation is
 it is not the result of the corrected full TI profile. CI uses recorded
 simulation output; full TI simulations remain manual. The four-rail power-tree
 convergence failure remains unresolved in both engines.
+
+## Desktop 0.0.3247 buck runtime reproduction
+
+These manual cases retain the second Desktop attempt's corrected physical pin
+connections, ideal external components, 12 V DC input, model defaults, 50 ns
+output interval, and 8 ms transient request with UIC:
+
+```sh
+TI_POWER_TIMEOUT_MS=60000 bun examples/ti-power/run.ts desktop-3247-buck-startup
+TI_POWER_TIMEOUT_MS=60000 bun examples/ti-power/run.ts desktop-3247-buck-loadstep
+```
+
+The startup case uses 1.1 Ω. The Desktop ripple experiment had the same circuit
+and analysis, so this case also reproduces that full-load run. The load-step
+case preserves the original exported 0–0.75 A pulse, including its 1 ns edges;
+that export does not match the prompt's intended 0.75–1.5 A load step. The ignored
+current-source DC offset is covered separately by the current-offset regression.
+
+All three corrected Desktop builds exceeded their runner's 60-second limit.
+Native ngspice 47 also exceeded a 180-second process limit on the same
+compatibility-rewritten startup, load-step and full-load ripple decks. The
+adapter startup run also exceeded 180 seconds. A process limit is not an ngspice
+convergence verdict, and no completed waveform is claimed for these cases.
+They remain manual model/solver reproductions, outside the short CI test suite.
+
+The runner saves a compatibility-rewritten deck before starting the simulation
+so the same input can be tested natively:
+
+```sh
+ngspice -n -D ngbehavior=psa -b -r /tmp/desktop-3247-buck.raw \
+  .cache/ti-power/desktop-3247-buck-startup.native.cir
+```
