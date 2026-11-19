@@ -20,7 +20,7 @@ Cp comp 0 330p
 Rpg out pg 100k
 Iload out 0 PWL(0 0 4m 0.75 5m 0.75 5.001m 1.5 6m 1.5 6.001m 0.75)
 .temp 25
-.options reltol=0.003 interp
+.options reltol=0.001 abstol=10n vntol=10u itl1=1500 itl2=400 itl4=400 interp
 .SAVE V(out)
 .PRINT TRAN V(out)
 .tran 50n 8m 0 20n
