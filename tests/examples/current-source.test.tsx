@@ -15,7 +15,7 @@ test("Current source circuit", async () => {
     RR3 N5 N6 1K
     Isimulation_current_source_0 N1 N2 DC 1
     Isimulation_current_source_1 N3 N4 SIN(0 1 1000 0 0 0)
-    Isimulation_current_source_2 N5 N6 PULSE(0 0.5 0 1n 1n 0.0025 0.01)
+    Isimulation_current_source_2 N5 N6 PULSE(0 0.5 0 1n 1n 2.5m 10m)
     .END"
   `)
 })

@@ -3,7 +3,7 @@ import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { CurrentSourceCommand } from "lib/spice-commands"
 import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
-import { formatNumberForSpice } from "./helpers"
+import { formatNumberForSpice, formatSecondsForSpice } from "./helpers"
 
 export const processSimulationCurrentSources = ({
   netlist,
@@ -49,13 +49,25 @@ export const processSimulationCurrentSources = ({
           const pulsedCurrent =
             initialCurrent + (simulationCurrentSource.peak_to_peak_current ?? 0)
           const frequencyHz = simulationCurrentSource.frequency ?? 0
-          const periodSeconds = frequencyHz === 0 ? Infinity : 1 / frequencyHz
+          const periodSeconds =
+            simulationCurrentSource.period === undefined
+              ? frequencyHz === 0
+                ? Infinity
+                : 1 / frequencyHz
+              : simulationCurrentSource.period / 1000
           const dutyCycle = simulationCurrentSource.duty_cycle ?? 0.5
-          const pulseWidthSeconds = periodSeconds * dutyCycle
-          const delaySeconds = 0
-          const riseTime = "1n"
-          const fallTime = "1n"
-          sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+          const pulseWidthSeconds =
+            simulationCurrentSource.pulse_width === undefined
+              ? periodSeconds * dutyCycle
+              : simulationCurrentSource.pulse_width / 1000
+          const delaySeconds = (simulationCurrentSource.pulse_delay ?? 0) / 1000
+          const riseTime = formatSecondsForSpice(
+            (simulationCurrentSource.rise_time ?? 0.000001) / 1000,
+          )
+          const fallTime = formatSecondsForSpice(
+            (simulationCurrentSource.fall_time ?? 0.000001) / 1000,
+          )
+          sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${formatSecondsForSpice(delaySeconds)} ${riseTime} ${fallTime} ${formatSecondsForSpice(pulseWidthSeconds)} ${formatSecondsForSpice(periodSeconds)})`
         }
 
         if (
