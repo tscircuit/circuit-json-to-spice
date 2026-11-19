@@ -124,6 +124,7 @@ components and load stimulus are unchanged. Both engines complete the requested
 These final-window results are at 0.75 A, whereas the EVM's 10 mV measurement
 is at 3 A, so this is not a matched-condition hardware validation.
 
+
 The runner checks basic DC regulation using the mean of the final 100 µs.
 It reports the final sample and window peak-to-peak voltage separately, and
 preserves a completed summary even when the acceptance check fails. This avoids
@@ -136,3 +137,36 @@ Its final sample is 3.37734 V, mean is 3.31880 V, and peak-to-peak variation is
 it is not the result of the corrected full TI profile. CI uses recorded
 simulation output; full TI simulations remain manual. The four-rail power-tree
 convergence failure remains unresolved in both engines.
+
+## Desktop 0.0.3247 four-regulator transient reproduction
+
+These two manual cases preserve the second Desktop attempt's exported external
+components, physical pin connections, model defaults, source waveforms, and
+60 ms transient request. The original TI libraries are downloaded and bundled by
+the existing hash-checked helper; their contents are not copied into the repo.
+
+```sh
+bun examples/ti-power/run.ts desktop-3247-tree-startup
+bun examples/ti-power/run.ts desktop-3247-tree-loadsteps
+```
+
+The runner also saves the compatibility-rewritten deck for a direct native
+comparison, even when simulation fails:
+
+```sh
+ngspice -n -D ngbehavior=psa -b -r /tmp/desktop-3247-tree.raw \
+  .cache/ti-power/desktop-3247-tree-startup.native.cir
+```
+
+The 24 V source ramps from 1 to 2 ms. The load-step case requests simultaneous
+0.5–1 A and 0.75–1.5 A steps at 20 ms. The startup case retains the generated
+ideal constant-current loads, including their nonphysical behavior near zero
+output voltage. LMZM33602 RT is open, as in the generated circuit.
+
+With adapter 0.0.25, the original exported startup and load-step decks stop at
+1.82666 ms and 1.82537 ms, respectively. Native ngspice 47, in PSpice mode and
+using the same compatibility-rewritten decks, also aborts near 1.85 ms. Neither
+engine reaches the 20 ms load changes. This reproduces an unresolved model/solver
+failure; it does not establish an adapter-specific defect or validate the design.
+The runner records incomplete simulations as failures. These full TI cases are
+manual reproductions, outside the short CI test suite.
