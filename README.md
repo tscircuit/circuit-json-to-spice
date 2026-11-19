@@ -80,6 +80,14 @@ The library automatically formats component values using standard SPICE notation
 - **Resistors**: `1000` → `1K`, `1000000` → `1MEG`
 - **Capacitors**: `0.000001` → `1U`, `0.000000001` → `1N`, `0.000000000001` → `1P`
 
+## Current-source waveforms
+
+For AC current sources, `current` is the DC offset in amperes and defaults to zero.
+A square wave switches from `current` to `current + peak_to_peak_current`.
+For example, `current: 0.5` with `peak_to_peak_current: 0.5` produces a 0.5–1 A
+load step. A sine wave is centered on `current`, with an amplitude of half
+`peak_to_peak_current`. Existing sources without an offset retain their behavior.
+
 ## References
 
 - Inspired by [https://eecircuit.com/](https://eecircuit.com/)
