@@ -6,9 +6,16 @@ const cases: Record<string, Record<string, number>> = {
   linear: { out: 2.8 },
   buck: { out: 3.3 },
   "power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
+  "desktop-linear": { vout: 2.8 },
+  "desktop-linear-startup": { vout: 2.8 },
+  "desktop-buck": { out: 3.3 },
+  "desktop-buck-loadstep": { out: 3.3 },
+  "desktop-buck-ripple": { out: 3.3 },
+  "desktop-power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
 }
 const selected = process.argv[2] ?? "all"
-const selectedCases = selected === "all" ? Object.keys(cases) : [selected]
+const selectedCases =
+  selected === "all" ? ["linear", "buck", "power-tree"] : [selected]
 
 if (!process.argv.includes("--child")) {
   const timeoutMs = Number(process.env.TI_POWER_TIMEOUT_MS ?? 600_000)

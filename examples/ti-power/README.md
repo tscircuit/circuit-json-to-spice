@@ -7,6 +7,34 @@ bun examples/ti-power/run.ts all
 # Or select linear, buck, or power-tree.
 ```
 
+The latest Desktop-generated test benches are also available:
+
+```sh
+bun examples/ti-power/run.ts desktop-linear
+bun examples/ti-power/run.ts desktop-linear-startup
+bun examples/ti-power/run.ts desktop-buck
+bun examples/ti-power/run.ts desktop-buck-loadstep
+bun examples/ti-power/run.ts desktop-buck-ripple
+bun examples/ti-power/run.ts desktop-power-tree
+```
+
+These preserve the generated external circuit and source conditions. Native
+`.control` blocks are expressed as batch analysis directives, and model libraries
+use the existing hash-verified download and exporter isolation. `.SAVE` restricts
+stored vectors to the requested outputs; `interp` limits storage to the output
+grid for the larger switching cases. Neither changes the internal solver step
+(see the [ngspice manual](https://ngspice.sourceforge.io/docs/ngspice-manual.pdf)).
+
+The Desktop power-tree case intentionally retains the generated `SS=1` settings,
+separate analog-ground net, and current loads at startup. It reproduces an
+unvalidated test bench; it is not a recommended reference design. Compare it with
+the original `power-tree` case before attributing a failure to the exporter.
+
+The small CI-passing visual reproduction of TI's ignored `.IC V(SS_TR )=0`
+syntax is in [ngspice adapter PR #42](https://github.com/tscircuit/ngspice-spice-engine/pull/42).
+Its [stacked fix](https://github.com/tscircuit/ngspice-spice-engine/pull/43)
+normalizes voltage-node whitespace without changing the vendor model files.
+
 The runner downloads the original TI libraries, verifies their SHA-256 hashes,
 bundles them through this exporter, and runs the ngspice WASM adapter. Vendor
 libraries and generated netlists/results remain in `.cache/ti-power`.

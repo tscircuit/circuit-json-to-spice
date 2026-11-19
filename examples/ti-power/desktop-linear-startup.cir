@@ -1,0 +1,13 @@
+* TPS7A2028 startup input ramp 1us into 14ohm (200mA nominal)
+.include TPS7A20
+.param V_out=2.8
+.temp 25
+V1 vin 0 PWL(0 0 1u 3.1)
+XU1 vin 0 vin nc vout TPS7A20_ADJ_TRANS
+C1 vin 0 1u
+C2 vout 0 1u
+Rload vout 0 14
+.SAVE V(vout)
+.PRINT TRAN V(vout)
+.tran 0.1u 5m
+.end
