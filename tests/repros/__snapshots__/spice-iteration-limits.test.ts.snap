@@ -1,0 +1,8 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TI solver iteration limits reach the SPICE options directive 1`] = `
+"* Circuit JSON to SPICE Netlist
+.options method=trap reltol=0.001 abstol=10n vntol=10u
+.tran 5e-8 0.008 UIC
+.END"
+`;
