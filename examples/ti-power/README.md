@@ -52,7 +52,7 @@ normalizes voltage-node whitespace without changing the vendor model files.
 The runner downloads the original TI libraries, verifies their SHA-256 hashes,
 bundles them through this exporter, and runs the ngspice WASM adapter. Vendor
 libraries and generated netlists/results remain in `.cache/ti-power`.
-Each simulation runs in a separate process with a ten-minute limit. The buck and
+Each simulation runs in a separate process with a fifteen-minute limit. The buck and
 four-stage tree can take several minutes. Set `TI_POWER_TIMEOUT_MS` to change the
 process limit. A timeout is recorded as an incomplete failure, never a pass.
 
@@ -154,12 +154,32 @@ case preserves the original exported 0–0.75 A pulse, including its 1 ns edges;
 that export does not match the prompt's intended 0.75–1.5 A load step. The ignored
 current-source DC offset is covered separately by the current-offset regression.
 
-All three corrected Desktop builds exceeded their runner's 60-second limit.
-Native ngspice 47 also exceeded a 180-second process limit on the same
-compatibility-rewritten startup, load-step and full-load ripple decks. The
-adapter startup run also exceeded 180 seconds. A process limit is not an ngspice
-convergence verdict, and no completed waveform is claimed for these cases.
-They remain manual model/solver reproductions, outside the short CI test suite.
+With enough time, the unchanged startup/full-load circuit completes:
+
+| Engine | Wall time | Simulated time | Final 100 µs mean |
+| --- | --- | --- | --- |
+| Native ngspice 47 | 342 s | 8 ms | 3.331617 V |
+| ngspice WASM adapter 0.0.25 | 613 s | 8 ms | 3.330306 V |
+
+Both means pass the 3.3 V ±2% regulation check. The full TI switching model
+produces about 3.72 million adaptive points natively; the adapter returns
+160,001 points on the requested 50 ns output grid. The original 60-second
+Desktop and 180-second diagnostic limits interrupted a working calculation.
+The previous ten-minute example limit could also expire before the measured
+WASM run completed. The default is now fifteen minutes, and the runner uses
+adapter 0.0.25, matching this validation. No circuit values, TI model equations,
+or solver tolerances were changed for these measurements.
+
+Use the default budget for a complete run:
+
+```sh
+bun examples/ti-power/run.ts desktop-3247-buck-startup
+```
+
+This validates completion and regulation for startup/full-load operation.
+It does not validate the incorrect load-step stimulus against the prompt or
+establish agreement with hardware ripple measurements. Full-model runs remain
+manual, outside the short CI test suite.
 
 The runner saves a compatibility-rewritten deck before starting the simulation
 so the same input can be tested natively:
