@@ -25,7 +25,7 @@
     "circuit-to-svg": "^0.0.275",
     "eecircuit-engine": "^1.5.2",
     "format-si-unit": "^0.0.12",
-    "schematic-symbols": "^0.0.202",
+    "schematic-symbols": "^0.0.251",
     "spicets": "^0.0.6",
     "tscircuit": "^0.0.3230",
     "tsup": "^8.4.0"
