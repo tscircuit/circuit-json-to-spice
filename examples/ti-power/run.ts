@@ -12,6 +12,7 @@ const cases: Record<string, Record<string, number>> = {
   "desktop-buck-loadstep": { out: 3.3 },
   "desktop-buck-ripple": { out: 3.3 },
   "desktop-power-tree": { v12: 12, v5: 5, v1v2: 1.2, v1v8: 1.8 },
+  "lmzm-startup": { v12: 12 },
 }
 const selected = process.argv[2] ?? "all"
 const selectedCases =

@@ -16,6 +16,7 @@ bun examples/ti-power/run.ts desktop-buck
 bun examples/ti-power/run.ts desktop-buck-loadstep
 bun examples/ti-power/run.ts desktop-buck-ripple
 bun examples/ti-power/run.ts desktop-power-tree
+bun examples/ti-power/run.ts lmzm-startup
 ```
 
 These preserve the generated external circuit and source conditions. Native
@@ -29,6 +30,19 @@ The Desktop power-tree case intentionally retains the generated `SS=1` settings,
 separate analog-ground net, and current loads at startup. It reproduces an
 unvalidated test bench; it is not a recommended reference design. Compare it with
 the original `power-tree` case before attributing a failure to the exporter.
+
+`lmzm-startup` isolates the upstream module with a 24 V ramp and a 24 Ω load.
+It uses trapezoidal integration to expose the startup convergence failure; the
+Gear version of the same bench advances extremely slowly instead. Native
+ngspice 47 also reproduces this behavior with the adapter's compatibility
+rewrites applied. This is an unresolved model/solver interaction, not an
+established exporter defect.
+
+The `AGND` connection in the original `power-tree` and `lmzm-startup` benches is
+a simulation return for this macro-model. The [TI model](https://www.ti.com/lit/zip/snvmbf8)
+does not implement the hardware's internal AGND-to-PGND connection. The
+[hardware datasheet](https://www.ti.com/lit/ds/symlink/lmzm33602.pdf) says to keep
+those pins separate externally; do not copy the simulation return into a PCB.
 
 The small CI-passing visual reproduction of TI's ignored `.IC V(SS_TR )=0`
 syntax is in [ngspice adapter PR #42](https://github.com/tscircuit/ngspice-spice-engine/pull/42).
