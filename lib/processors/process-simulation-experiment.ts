@@ -11,7 +11,17 @@ import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
 import { Ac, Dc, Op, Options, Print, Save, Tran } from "spicets"
 import { formatNumberForSpice, sanitizeIdentifier } from "./helpers"
 
-const spiceOptionOrder = ["method", "reltol", "abstol", "vntol"] as const
+const spiceOptionOrder = [
+  "method",
+  "reltol",
+  "abstol",
+  "vntol",
+  "itl1",
+  "itl2",
+  "itl4",
+] as const
+
+type SpiceOptionName = (typeof spiceOptionOrder)[number]
 
 interface VoltageProbeVectorMapping {
   simulation_voltage_probe_id: string
@@ -193,7 +203,9 @@ export const processSimulationExperiment = ({
   )
   const probeVectors = new Set<string>()
 
-  const spiceOptions = simulationExperiment.spice_options
+  const spiceOptions:
+    | Partial<Record<SpiceOptionName, string | number>>
+    | undefined = simulationExperiment.spice_options
   if (spiceOptions) {
     const optionValues: Record<string, string | number> = {}
     for (const key of spiceOptionOrder) {

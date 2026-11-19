@@ -2,7 +2,7 @@
 
 exports[`TI solver iteration limits reach the SPICE options directive 1`] = `
 "* Circuit JSON to SPICE Netlist
-.options method=trap reltol=0.001 abstol=10n vntol=10u
+.options method=trap reltol=0.001 abstol=10n vntol=10u itl1=1500 itl2=400 itl4=400
 .tran 5e-8 0.008 UIC
 .END"
 `;
