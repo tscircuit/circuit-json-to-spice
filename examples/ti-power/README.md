@@ -115,9 +115,18 @@ startup input ramp differs from the Desktop bench's 10 µs ramp. The
 four-module chain and page 40, Table 9 gives individual module load measurements.
 Those measurements are useful targets once a full tree simulation completes.
 
-The CI snapshot in `tests/repros/ti-buck-settled-voltage.test.ts` isolates a
-second validation issue using the recorded final 100 µs of a completed buck
-load-step run. Its 3.37734 V final sample is outside the current check, although
-the window mean is 3.31880 V. The baseline snapshot records that phase-dependent
-rejection. It uses recorded simulation output, so CI does not download models
-or run the expensive complete TI bench.
+The Desktop buck load-step bench limits the internal integration step to 20 ns.
+With the default step limit it can abort early. The unchanged electrical bench
+completes its requested 8 ms in native ngspice and WASM with the smaller limit.
+
+The runner checks basic DC regulation using the mean of the final 100 µs.
+It reports the final sample and window peak-to-peak voltage separately, and
+preserves a completed summary even when the acceptance check fails. This avoids
+judging DC regulation from one switching phase while retaining the ripple.
+
+The CI snapshot in `tests/repros/ti-buck-settled-voltage.test.ts` uses that run's
+recorded final 100 µs. Its final sample is 3.37734 V, mean is 3.31880 V, and
+peak-to-peak variation is 179 mV. The mean satisfies the basic 2% check, but the
+waveform does not match the EVM's 10 mV ripple measurement. This remains a
+model/solver accuracy limitation to investigate, not a validated hardware result.
+CI uses recorded simulation output; full TI simulations remain manual.

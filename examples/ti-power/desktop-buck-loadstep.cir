@@ -23,5 +23,5 @@ Iload out 0 PWL(0 0 4m 0.75 5m 0.75 5.001m 1.5 6m 1.5 6.001m 0.75)
 .options reltol=0.003 interp
 .SAVE V(out)
 .PRINT TRAN V(out)
-.tran 50n 8m
+.tran 50n 8m 0 20n
 .end

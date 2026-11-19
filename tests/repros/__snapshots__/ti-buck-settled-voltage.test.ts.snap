@@ -5,6 +5,8 @@ exports[`TI buck regulation with a high final switching sample 1`] = `
   "finalVoltage": 3.3773416334477666,
   "name": "out",
   "nominalVoltage": 3.3,
-  "withinTwoPercent": false,
+  "settledMeanVoltage": 3.3188038335590124,
+  "settledPeakToPeakVoltage": 0.17934685850060195,
+  "withinTwoPercent": true,
 }
 `;
