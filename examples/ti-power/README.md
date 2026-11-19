@@ -114,3 +114,10 @@ startup input ramp differs from the Desktop bench's 10 µs ramp. The
 [TIDA-010011 guide](https://www.ti.com/lit/pdf/tiduel1) page 37 documents the
 four-module chain and page 40, Table 9 gives individual module load measurements.
 Those measurements are useful targets once a full tree simulation completes.
+
+The CI snapshot in `tests/repros/ti-buck-settled-voltage.test.ts` isolates a
+second validation issue using the recorded final 100 µs of a completed buck
+load-step run. Its 3.37734 V final sample is outside the current check, although
+the window mean is 3.31880 V. The baseline snapshot records that phase-dependent
+rejection. It uses recorded simulation output, so CI does not download models
+or run the expensive complete TI bench.

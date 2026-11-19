@@ -1,5 +1,6 @@
 import { createNgspiceSpiceEngine } from "@tscircuit/ngspice-spice-engine"
 import { join } from "node:path"
+import { getVoltageSummary } from "./get-voltage-summary"
 import { bundleTiModels } from "./ti-models"
 
 const cases: Record<string, Record<string, number>> = {
@@ -72,17 +73,7 @@ if (!process.argv.includes("--child")) {
     .filter((graph) => graph.type === "simulation_transient_voltage_graph")
     .map((graph) => {
       const nominalVoltage = cases[selected][graph.name?.toLowerCase() ?? ""]
-      const finalVoltage = graph.voltage_levels.at(-1)
-      return {
-        name: graph.name,
-        nominalVoltage,
-        finalVoltage,
-        withinTwoPercent:
-          finalVoltage !== undefined &&
-          Number.isFinite(finalVoltage) &&
-          nominalVoltage !== undefined &&
-          Math.abs(finalVoltage - nominalVoltage) <= nominalVoltage * 0.02,
-      }
+      return getVoltageSummary({ graph, nominalVoltage })
     })
   const passed =
     voltages.length === Object.keys(cases[selected]).length &&
