@@ -44,6 +44,7 @@ if (!process.argv.includes("--child")) {
     const summary: { completed?: boolean } = await Bun.file(summaryPath).json()
     if (exitCode !== 0 || child.signalCode || !summary.completed) {
       process.exitCode = 1
+      if (summary.completed) continue
       const failure = {
         simulation: name,
         completed: false,
