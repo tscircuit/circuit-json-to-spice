@@ -10,12 +10,17 @@ import type {
   SourceSimpleDiode,
   SourceSimpleLed,
   SourceSimpleMosfet,
+  SourceSimplePotentiometer,
   SourceSimpleSwitch,
   SourceSimpleTransistor,
 } from "circuit-json"
 import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
 import { su } from "@tscircuit/circuit-json-util"
 import { processSimpleResistor } from "./processors/simple-resistor"
+import {
+  processSimplePotentiometer,
+  type SimulationPotentiometerConfig,
+} from "./processors/simple-potentiometer"
 import { processSimpleSwitch } from "./processors/simple-switch"
 import { processSimpleCapacitor } from "./processors/simple-capacitor"
 import { processSimpleDiode, processSimpleLed } from "./processors/simple-diode"
@@ -72,6 +77,30 @@ export function circuitJsonToSpice(
       simulationSwitchMap.set(simSwitch.source_component_id, simSwitch)
     }
   }
+
+  const simulationPotentiometerMap = new Map<
+    string,
+    SimulationPotentiometerConfig
+  >()
+  for (const elm of circuitJson) {
+    if (
+      (elm as { type?: string }).type === "simulation_potentiometer" &&
+      (elm as SimulationPotentiometerConfig).source_component_id
+    ) {
+      const simPot = elm as SimulationPotentiometerConfig
+      simulationPotentiometerMap.set(simPot.source_component_id!, simPot)
+    }
+  }
+
+  const reservedResistorNames = new Set(
+    sourceComponents
+      .filter(
+        (comp) =>
+          (comp as { ftype?: string }).ftype === "simple_resistor" &&
+          typeof comp.name === "string",
+      )
+      .map((comp) => comp.name.toUpperCase()),
+  )
 
   const connMap = getSourcePortConnectivityMapFromCircuitJson(circuitJson)
 
@@ -254,6 +283,17 @@ export function circuitJsonToSpice(
       switch ((component as { ftype: string }).ftype) {
         case "simple_resistor": {
           spiceComponent = processSimpleResistor({ component, nodes })
+          break
+        }
+        case "simple_potentiometer": {
+          spiceComponent = processSimplePotentiometer({
+            netlist,
+            component: component as SourceSimplePotentiometer,
+            componentPorts,
+            nodeMap,
+            simulationPotentiometerMap,
+            reservedResistorNames,
+          })
           break
         }
         case "simple_switch": {
