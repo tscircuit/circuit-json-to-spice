@@ -16,6 +16,7 @@ export const processSimpleResistor = ({
   nodes: string[]
 }): SpiceComponent | null => {
   if ("resistance" in component && "name" in component) {
+    if (!Number.isFinite(component.resistance)) return null
     const resistance = component.resistance as number
     const resistorCmd = new ResistorCommand({
       name: component.name as string,
