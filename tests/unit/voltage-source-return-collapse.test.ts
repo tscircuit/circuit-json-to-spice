@@ -1,0 +1,119 @@
+import { expect, test } from "bun:test"
+import type { AnyCircuitElement } from "circuit-json"
+import { circuitJsonToSpice } from "lib/circuitJsonToSpice"
+
+function sourceCircuit({
+  stacked,
+  explicitGround,
+  singleSource = false,
+}: {
+  stacked: boolean
+  explicitGround: boolean
+  singleSource?: boolean
+}): AnyCircuitElement[] {
+  const sourceNames = singleSource ? ["supply"] : ["supply", "offset"]
+  const circuitJson: AnyCircuitElement[] = sourceNames.flatMap(
+    (name): AnyCircuitElement[] => [
+      {
+        type: "source_component",
+        source_component_id: name,
+        name,
+        ftype: "simple_voltage_source",
+        voltage: name === "supply" ? 5 : 3,
+      },
+      ...["pos", "neg"].map(
+        (terminal, index): AnyCircuitElement => ({
+          type: "source_port",
+          source_port_id: `${name}_${terminal}`,
+          source_component_id: name,
+          name: terminal,
+          pin_number: index + 1,
+        }),
+      ),
+      {
+        type: "simulation_voltage_source",
+        simulation_voltage_source_id: name,
+        is_dc_source: true,
+        positive_source_port_id: `${name}_pos`,
+        negative_source_port_id: `${name}_neg`,
+        voltage: name === "supply" ? 5 : 3,
+      },
+    ],
+  )
+  if (stacked) {
+    circuitJson.push({
+      type: "source_trace",
+      source_trace_id: "midpoint",
+      connected_source_port_ids: ["supply_neg", "offset_pos"],
+      connected_source_net_ids: [],
+    })
+  }
+  // Even an unnamed return participates in connectivity, as it does in a board.
+  for (const name of sourceNames) {
+    if (stacked && name === "supply") continue
+    circuitJson.push(
+      {
+        type: "source_net",
+        source_net_id: `${name}_return`,
+        name: explicitGround && name === "offset" ? "GND" : `${name}_return`,
+        member_source_group_ids: [],
+      },
+      {
+        type: "source_trace",
+        source_trace_id: `${name}_return_trace`,
+        connected_source_port_ids: [`${name}_neg`],
+        connected_source_net_ids: [`${name}_return`],
+      },
+    )
+  }
+  return circuitJson
+}
+
+// These characterization snapshots expose main's incorrect copper topology;
+// the paired fix keeps the midpoint and unrelated returns distinct.
+test("reproduces collapsed supply midpoints and unrelated returns", () => {
+  expect({
+    stackedWithGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: true }),
+    ).toSpiceString(),
+    stackedWithoutGround: circuitJsonToSpice(
+      sourceCircuit({ stacked: true, explicitGround: false }),
+    ).toSpiceString(),
+    unrelatedReturns: circuitJsonToSpice(
+      sourceCircuit({ stacked: false, explicitGround: false }),
+    ).toSpiceString(),
+    singleSource: circuitJsonToSpice(
+      sourceCircuit({
+        stacked: false,
+        explicitGround: false,
+        singleSource: true,
+      }),
+    ).toSpiceString(),
+  }).toMatchInlineSnapshot(`
+    {
+      "singleSource": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    .END"
+    ,
+      "stackedWithGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset 0 0 DC 3
+    .END"
+    ,
+      "stackedWithoutGround": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset 0 0 DC 3
+    .END"
+    ,
+      "unrelatedReturns": 
+    "* Circuit JSON to SPICE Netlist
+    Vsupply N1 0 DC 5
+    Voffset N2 0 DC 3
+    .END"
+    ,
+    }
+  `)
+})
