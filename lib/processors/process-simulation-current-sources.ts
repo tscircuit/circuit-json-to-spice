@@ -3,7 +3,7 @@ import { SpiceComponent } from "lib/spice-classes/SpiceComponent"
 import type { SpiceNetlist } from "lib/spice-classes/SpiceNetlist"
 import { CurrentSourceCommand } from "lib/spice-commands"
 import type { SourcePortOrNetIdToSpiceNodeNameMap } from "lib/spice-node-map"
-import { formatNumberForSpice } from "./helpers"
+import { formatNumberForSpice, formatSecondsForSpice } from "./helpers"
 
 export const processSimulationCurrentSources = ({
   netlist,
@@ -56,6 +56,37 @@ export const processSimulationCurrentSources = ({
           const riseTime = "1n"
           const fallTime = "1n"
           sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+        } else if (
+          simulationCurrentSource.wave_shape === "triangle" ||
+          simulationCurrentSource.wave_shape === "sawtooth"
+        ) {
+          const initialCurrent =
+            simulationCurrentSource.peak_to_peak_current !== undefined
+              ? (simulationCurrentSource.current ?? 0)
+              : 0
+          const pulsedCurrent =
+            simulationCurrentSource.peak_to_peak_current !== undefined
+              ? initialCurrent + simulationCurrentSource.peak_to_peak_current
+              : (simulationCurrentSource.current ?? 0)
+          const frequencyHz = simulationCurrentSource.frequency ?? 0
+          const periodSeconds = frequencyHz > 0 ? 1 / frequencyHz : Infinity
+          if (Number.isFinite(periodSeconds) && periodSeconds > 0) {
+            const fallSeconds =
+              simulationCurrentSource.wave_shape === "triangle"
+                ? periodSeconds / 2
+                : periodSeconds * 1e-3
+            const riseSeconds =
+              simulationCurrentSource.wave_shape === "triangle"
+                ? periodSeconds / 2
+                : periodSeconds - fallSeconds
+            const pulseWidthText = formatSecondsForSpice(
+              Math.min(1e-12, periodSeconds * 1e-6),
+            )
+            const periodText = formatSecondsForSpice(periodSeconds)
+            sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} 0 ${formatSecondsForSpice(riseSeconds)} ${formatSecondsForSpice(fallSeconds)} ${pulseWidthText} ${periodText})`
+          } else {
+            sourceExpression = `DC ${pulsedCurrent}`
+          }
         }
 
         if (

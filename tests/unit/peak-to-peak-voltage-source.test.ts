@@ -84,6 +84,34 @@ test("square source uses peak-to-peak voltage as its high level", () => {
   )
 })
 
+test("triangle source uses peak-to-peak voltage as its high level", () => {
+  const netlist = circuitJsonToSpice(
+    getCircuitWithAcVoltageSource({
+      peak_to_peak_voltage: 4,
+      frequency: 1000,
+      wave_shape: "triangle",
+    }),
+  )
+
+  expect(netlist.toSpiceString()).toContain(
+    "Vsource N1 0 PULSE(0 4 0 500u 500u 1p 1m)",
+  )
+})
+
+test("sawtooth source uses peak-to-peak voltage as its high level", () => {
+  const netlist = circuitJsonToSpice(
+    getCircuitWithAcVoltageSource({
+      peak_to_peak_voltage: 4,
+      frequency: 1000,
+      wave_shape: "sawtooth",
+    }),
+  )
+
+  expect(netlist.toSpiceString()).toContain(
+    "Vsource N1 0 PULSE(0 4 0 999u 1u 1p 1m)",
+  )
+})
+
 test("explicit voltage takes precedence over peak-to-peak voltage", () => {
   const netlist = circuitJsonToSpice(
     getCircuitWithAcVoltageSource({

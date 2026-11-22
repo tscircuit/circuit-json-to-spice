@@ -79,6 +79,68 @@ export const processSimulationVoltageSources = ({
                 )
           const periodText = formatSecondsForSpice(periodSeconds)
           sourceExpression = `PULSE(${initialVoltage} ${pulsedVoltage} ${formatSecondsForSpice(delaySeconds)} ${riseTime} ${fallTime} ${pulseWidthText} ${periodText})`
+        } else if (
+          simulationVoltageSource.wave_shape === "triangle" ||
+          simulationVoltageSource.wave_shape === "sawtooth"
+        ) {
+          const initialVoltage = 0
+          const pulsedVoltage =
+            simulationVoltageSource.voltage ??
+            simulationVoltageSource.peak_to_peak_voltage ??
+            0
+          const frequencyHz = simulationVoltageSource.frequency ?? 0
+          const periodFromFrequencySeconds =
+            frequencyHz > 0 ? 1 / frequencyHz : Infinity
+          const periodSeconds =
+            simulationVoltageSource.period === undefined
+              ? periodFromFrequencySeconds
+              : simulationVoltageSource.period / 1000
+          if (Number.isFinite(periodSeconds) && periodSeconds > 0) {
+            const delaySeconds =
+              simulationVoltageSource.pulse_delay !== undefined
+                ? simulationVoltageSource.pulse_delay / 1000
+                : 0
+            let riseSeconds: number
+            let fallSeconds: number
+            if (simulationVoltageSource.wave_shape === "triangle") {
+              riseSeconds =
+                simulationVoltageSource.rise_time !== undefined
+                  ? simulationVoltageSource.rise_time / 1000
+                  : periodSeconds / 2
+              fallSeconds =
+                simulationVoltageSource.fall_time !== undefined
+                  ? simulationVoltageSource.fall_time / 1000
+                  : periodSeconds / 2
+            } else {
+              const defaultFallSeconds = periodSeconds * 1e-3
+              fallSeconds =
+                simulationVoltageSource.fall_time !== undefined
+                  ? simulationVoltageSource.fall_time / 1000
+                  : simulationVoltageSource.rise_time !== undefined
+                    ? Math.max(
+                        periodSeconds -
+                          simulationVoltageSource.rise_time / 1000,
+                        0,
+                      )
+                    : defaultFallSeconds
+              riseSeconds =
+                simulationVoltageSource.rise_time !== undefined
+                  ? simulationVoltageSource.rise_time / 1000
+                  : Math.max(periodSeconds - fallSeconds, 0)
+            }
+            // Classic SPICE3f5 / WASM ngspice treats PW=0 in PULSE() as
+            // unspecified and defaults PW to TSTOP, clamping the falling slope.
+            const pulseWidthText =
+              simulationVoltageSource.pulse_width === undefined
+                ? formatSecondsForSpice(Math.min(1e-12, periodSeconds * 1e-6))
+                : formatSecondsForSpice(
+                    simulationVoltageSource.pulse_width / 1000,
+                  )
+            const periodText = formatSecondsForSpice(periodSeconds)
+            sourceExpression = `PULSE(${initialVoltage} ${pulsedVoltage} ${formatSecondsForSpice(delaySeconds)} ${formatSecondsForSpice(riseSeconds)} ${formatSecondsForSpice(fallSeconds)} ${pulseWidthText} ${periodText})`
+          } else {
+            sourceExpression = `DC ${pulsedVoltage}`
+          }
         } else if (simulationVoltageSource.voltage !== undefined) {
           sourceExpression = `DC ${simulationVoltageSource.voltage}`
         }
