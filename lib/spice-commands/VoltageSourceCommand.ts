@@ -24,8 +24,8 @@ export class VoltageSourceCommand implements BaseSpiceCommand {
     if (value) {
       spiceString += ` ${value}`
     }
-    if (acMagnitude) {
-      spiceString += ` AC ${acMagnitude}`
+    if (acMagnitude || acPhase) {
+      spiceString += ` AC ${acMagnitude ?? "1"}`
       if (acPhase) {
         spiceString += ` ${acPhase}`
       }
