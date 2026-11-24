@@ -7,17 +7,37 @@ import type {
   SourceSimpleLed,
 } from "circuit-json"
 
+const ANODE_TOKENS = new Set(["anode", "pos", "positive", "+", "a"])
+const CATHODE_TOKENS = new Set(["cathode", "neg", "negative", "-", "k"])
+
+const portMatchesTokens = (port: SourcePort, tokens: Set<string>): boolean => {
+  const normalizedName = port.name?.trim().toLowerCase()
+  if (normalizedName && tokens.has(normalizedName)) return true
+  return (
+    port.port_hints?.some((hint) => tokens.has(hint.trim().toLowerCase())) ??
+    false
+  )
+}
+
 const getDiodeNodes = (
   componentPorts: SourcePort[],
   nodeMap: Map<string, string>,
 ) => {
-  const anodePort = componentPorts.find(
-    (p) => p.name?.toLowerCase() === "anode" || p.port_hints?.includes("anode"),
+  const matchedAnodePort = componentPorts.find((p) =>
+    portMatchesTokens(p, ANODE_TOKENS),
   )
-  const cathodePort = componentPorts.find(
-    (p) =>
-      p.name?.toLowerCase() === "cathode" || p.port_hints?.includes("cathode"),
+  const matchedCathodePort = componentPorts.find(
+    (p) => p !== matchedAnodePort && portMatchesTokens(p, CATHODE_TOKENS),
   )
+
+  const anodePort =
+    matchedAnodePort ??
+    componentPorts.find((p) => p !== matchedCathodePort) ??
+    componentPorts[0]
+  const cathodePort =
+    matchedCathodePort ??
+    componentPorts.find((p) => p !== anodePort) ??
+    componentPorts[1]
 
   return {
     positiveNode: nodeMap.get(anodePort?.source_port_id ?? "") || "0",
