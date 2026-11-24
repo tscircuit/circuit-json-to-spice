@@ -57,28 +57,36 @@ export const processSimulationVoltageSources = ({
             simulationVoltageSource.period === undefined
               ? periodFromFrequencySeconds
               : simulationVoltageSource.period / 1000
-          const dutyCycle = simulationVoltageSource.duty_cycle ?? 0.5
-          const pulseWidthSeconds = periodSeconds * dutyCycle
-          const delaySeconds =
-            simulationVoltageSource.pulse_delay !== undefined
-              ? simulationVoltageSource.pulse_delay / 1000
-              : 0
-          const riseTime =
-            simulationVoltageSource.rise_time !== undefined
-              ? formatSecondsForSpice(simulationVoltageSource.rise_time / 1000)
-              : "1n"
-          const fallTime =
-            simulationVoltageSource.fall_time !== undefined
-              ? formatSecondsForSpice(simulationVoltageSource.fall_time / 1000)
-              : "1n"
-          const pulseWidthText =
-            simulationVoltageSource.pulse_width === undefined
-              ? formatSecondsForSpice(pulseWidthSeconds)
-              : formatSecondsForSpice(
-                  simulationVoltageSource.pulse_width / 1000,
-                )
-          const periodText = formatSecondsForSpice(periodSeconds)
-          sourceExpression = `PULSE(${initialVoltage} ${pulsedVoltage} ${formatSecondsForSpice(delaySeconds)} ${riseTime} ${fallTime} ${pulseWidthText} ${periodText})`
+          if (!Number.isFinite(periodSeconds) || periodSeconds <= 0) {
+            sourceExpression = `DC ${simulationVoltageSource.voltage ?? 0}`
+          } else {
+            const dutyCycle = simulationVoltageSource.duty_cycle ?? 0.5
+            const pulseWidthSeconds = periodSeconds * dutyCycle
+            const delaySeconds =
+              simulationVoltageSource.pulse_delay !== undefined
+                ? simulationVoltageSource.pulse_delay / 1000
+                : 0
+            const riseTime =
+              simulationVoltageSource.rise_time !== undefined
+                ? formatSecondsForSpice(
+                    simulationVoltageSource.rise_time / 1000,
+                  )
+                : "1n"
+            const fallTime =
+              simulationVoltageSource.fall_time !== undefined
+                ? formatSecondsForSpice(
+                    simulationVoltageSource.fall_time / 1000,
+                  )
+                : "1n"
+            const pulseWidthText =
+              simulationVoltageSource.pulse_width === undefined
+                ? formatSecondsForSpice(pulseWidthSeconds)
+                : formatSecondsForSpice(
+                    simulationVoltageSource.pulse_width / 1000,
+                  )
+            const periodText = formatSecondsForSpice(periodSeconds)
+            sourceExpression = `PULSE(${initialVoltage} ${pulsedVoltage} ${formatSecondsForSpice(delaySeconds)} ${riseTime} ${fallTime} ${pulseWidthText} ${periodText})`
+          }
         } else if (simulationVoltageSource.voltage !== undefined) {
           sourceExpression = `DC ${simulationVoltageSource.voltage}`
         }

@@ -49,13 +49,17 @@ export const processSimulationCurrentSources = ({
           const pulsedCurrent =
             initialCurrent + (simulationCurrentSource.peak_to_peak_current ?? 0)
           const frequencyHz = simulationCurrentSource.frequency ?? 0
-          const periodSeconds = frequencyHz === 0 ? Infinity : 1 / frequencyHz
-          const dutyCycle = simulationCurrentSource.duty_cycle ?? 0.5
-          const pulseWidthSeconds = periodSeconds * dutyCycle
-          const delaySeconds = 0
-          const riseTime = "1n"
-          const fallTime = "1n"
-          sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+          const periodSeconds = frequencyHz > 0 ? 1 / frequencyHz : Infinity
+          if (!Number.isFinite(periodSeconds) || periodSeconds <= 0) {
+            sourceExpression = `DC ${initialCurrent}`
+          } else {
+            const dutyCycle = simulationCurrentSource.duty_cycle ?? 0.5
+            const pulseWidthSeconds = periodSeconds * dutyCycle
+            const delaySeconds = 0
+            const riseTime = "1n"
+            const fallTime = "1n"
+            sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+          }
         }
 
         if (
