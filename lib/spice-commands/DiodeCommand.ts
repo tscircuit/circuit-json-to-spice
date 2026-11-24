@@ -20,7 +20,7 @@ export class DiodeCommand implements BaseSpiceCommand {
     const { name, positiveNode, negativeNode, model, area } = this.props
     let spiceString = `D${name} ${positiveNode} ${negativeNode} ${model}`
     if (area) {
-      spiceString += ` ${area}`
+      spiceString += ` AREA=${area}`
     }
     return spiceString
   }
