@@ -56,6 +56,8 @@ export const processSimulationCurrentSources = ({
           const riseTime = "1n"
           const fallTime = "1n"
           sourceExpression = `PULSE(${initialCurrent} ${pulsedCurrent} ${delaySeconds} ${riseTime} ${fallTime} ${pulseWidthSeconds} ${periodSeconds})`
+        } else if (simulationCurrentSource.current !== undefined) {
+          sourceExpression = `DC ${simulationCurrentSource.current}`
         }
 
         if (
