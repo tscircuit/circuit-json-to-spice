@@ -347,6 +347,7 @@ test.each([
   { ftype: "simple_capacitor", capacitance: 0.000001 },
   { ftype: "simple_inductor", inductance: 0.001 },
   { ftype: "simple_switch" },
+  { ftype: "simple_rotary_switch", poles: 1, positions: 3 },
 ])("$ftype uses only its custom SPICE subcircuit", (component) => {
   const rectifierDiodeModel = `
 .subckt RECTIFIER_DIODE ANODE CATHODE

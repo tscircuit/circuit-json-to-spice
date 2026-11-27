@@ -17,6 +17,10 @@ import { getSourcePortConnectivityMapFromCircuitJson } from "circuit-json-to-con
 import { su } from "@tscircuit/circuit-json-util"
 import { processSimpleResistor } from "./processors/simple-resistor"
 import { processSimpleSwitch } from "./processors/simple-switch"
+import {
+  processSimpleRotarySwitch,
+  type RotarySwitchSourceComponent,
+} from "./processors/simple-rotary-switch"
 import { processSimpleCapacitor } from "./processors/simple-capacitor"
 import { processSimpleDiode, processSimpleLed } from "./processors/simple-diode"
 import { processSimpleInductor } from "./processors/simple-inductor"
@@ -215,6 +219,63 @@ export function circuitJsonToSpice(
     }
   }
 
+  const externallyReferencedPortIds = new Set<string>(
+    sourcePorts
+      .map((port) => port.source_port_id)
+      .filter((portId) => nodeMap.has(portId)),
+  )
+  for (const probe of simulationProbes) {
+    if (probe.signal_input_source_port_id) {
+      externallyReferencedPortIds.add(probe.signal_input_source_port_id)
+    }
+    if (probe.reference_input_source_port_id) {
+      externallyReferencedPortIds.add(probe.reference_input_source_port_id)
+    }
+  }
+  for (const probe of simulationCurrentProbes) {
+    if (probe.positive_source_port_id) {
+      externallyReferencedPortIds.add(probe.positive_source_port_id)
+    }
+    if (probe.negative_source_port_id) {
+      externallyReferencedPortIds.add(probe.negative_source_port_id)
+    }
+  }
+  for (const simSource of [
+    ...su(circuitJson).simulation_voltage_source.list(),
+    ...su(circuitJson).simulation_current_source.list(),
+  ]) {
+    const rawSource = simSource as Record<string, unknown>
+    for (const key of [
+      "positive_source_port_id",
+      "negative_source_port_id",
+      "terminal1_source_port_id",
+      "terminal2_source_port_id",
+    ]) {
+      const value = rawSource[key]
+      if (typeof value === "string") {
+        externallyReferencedPortIds.add(value)
+      }
+    }
+  }
+  for (const opAmp of simulationOpAmps) {
+    for (const portId of [
+      opAmp.inverting_input_source_port_id,
+      opAmp.non_inverting_input_source_port_id,
+      opAmp.output_source_port_id,
+      opAmp.positive_supply_source_port_id,
+      opAmp.negative_supply_source_port_id,
+    ]) {
+      if (portId) externallyReferencedPortIds.add(portId)
+    }
+  }
+  for (const subcircuit of simulationSpiceSubcircuits) {
+    for (const portId of Object.values(
+      subcircuit.spice_pin_to_source_port_map ?? {},
+    )) {
+      if (portId) externallyReferencedPortIds.add(portId)
+    }
+  }
+
   // Second pass: assign node numbers to unconnected ports
   for (const port of sourcePorts) {
     const portId = port.source_port_id
@@ -262,6 +323,17 @@ export function circuitJsonToSpice(
             component: component as SourceSimpleSwitch,
             nodes,
             simulationSwitchMap,
+          })
+          break
+        }
+        case "simple_rotary_switch": {
+          spiceComponent = processSimpleRotarySwitch({
+            netlist,
+            component: component as unknown as RotarySwitchSourceComponent,
+            componentPorts,
+            nodeMap,
+            simulationSwitchMap,
+            externallyReferencedPortIds,
           })
           break
         }
